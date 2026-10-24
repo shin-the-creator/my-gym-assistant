@@ -1,0 +1,72 @@
+# 안드로이드 설치 파일(APK)을 GitHub 서버에서 만든다.
+# 결과물은 "android-latest" 릴리스에 my-gym-trainer.apk 로 올라가므로
+# 휴대폰 브라우저에서 바로 내려받아 설치할 수 있다(컴퓨터 불필요).
+name: Android APK
+
+on:
+  push:
+    branches: [main, claude/healthcare-trainer-app-e2l5g2]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check
+        run: |
+          npx tsc --noEmit
+          npx jest
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK (arm64, 삼성 등 최신 안드로이드폰)
+        working-directory: android
+        env:
+          # 저장소 Settings → Secrets 에 GEMINI_API_KEY 를 넣어 두면 앱에 키가 들어간다(없으면 앱 설정에서 입력)
+          EXPO_PUBLIC_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NODE_ENV: production
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk my-gym-trainer.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: my-gym-trainer-apk
+          path: my-gym-trainer.apk
+
+      - name: Publish to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest my-gym-trainer.apk \
+            --target "${GITHUB_SHA}" \
+            --prerelease \
+            --title "My Gym Trainer (Android)" \
+            --notes "브랜치 ${GITHUB_REF_NAME} · 커밋 ${GITHUB_SHA::7} 빌드. 휴대폰에서 my-gym-trainer.apk 를 눌러 내려받아 설치하세요."
