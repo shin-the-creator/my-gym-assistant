@@ -46,6 +46,20 @@ npm run web             # 브라우저에서 미리보기 (알림 제외)
 npx eas-cli@latest build --profile development --platform ios   # 아이폰/아이패드용 개발 빌드
 ```
 
+### 휴대폰에 설치하기
+
+**가장 빠른 방법 — Expo Go로 바로 실행 (무료, 컴퓨터 필요)**
+1. 휴대폰에 앱스토어/플레이스토어에서 **Expo Go** 설치
+2. 컴퓨터에서 `git clone` → `git checkout claude/healthcare-trainer-app-e2l5g2` → `npm install` → `npx expo start`
+3. 아이폰은 기본 카메라 앱, 안드로이드는 Expo Go 앱으로 화면의 QR 코드를 찍으면 실행됩니다.
+   (컴퓨터와 휴대폰이 다른 Wi-Fi면 `npx expo start --tunnel`)
+   스토어의 Expo Go가 이 프로젝트의 Expo SDK(58)를 지원하지 않으면 아래 설치 파일 방식을 쓰세요.
+
+**계속 쓰는 앱으로 설치 — EAS Build (Expo 계정 무료)**
+- 안드로이드: `npx eas-cli@latest build -p android --profile preview` → 빌드가 끝나면 나오는 링크/QR로 APK를 받아 설치
+- 아이폰·아이패드: Apple 개발자 프로그램(연 $99)이 필요합니다. `npx eas-cli@latest device:create`로 기기를 등록한 뒤 `npx eas-cli@latest build -p ios --profile preview`
+- 빌드 서버에는 `.env`가 올라가지 않으니, 키를 넣어 빌드하려면 `npx eas-cli@latest env:create --name EXPO_PUBLIC_GEMINI_API_KEY --value <키> --environment preview`로 등록하세요(앱 설정 화면에 입력해도 됩니다).
+
 ### AI 기능 설정 (선택)
 기구 사진 인식과 AI 코치는 **Google AI Studio의 Gemini API 무료 등급**을 사용합니다(유료 API 불필요).
 1. 구글 계정으로 [aistudio.google.com/apikey](https://aistudio.google.com/apikey)에서 'API 키 만들기' (카드 등록 없음)
