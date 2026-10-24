@@ -67,7 +67,7 @@ export default function CoachScreen() {
 
   if (!profile) {
     return (
-      <Screen edges={['bottom']}>
+      <Screen narrow edges={['bottom']}>
         <Notice tone="warn">내 정보를 먼저 입력해야 맞춤 답변을 드릴 수 있어요.</Notice>
         <Button title="내 정보 입력" onPress={() => router.push('/profile')} />
       </Screen>
@@ -108,7 +108,7 @@ export default function CoachScreen() {
   const needsModel = engine === 'local' && modelReady === false;
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen narrow edges={['bottom']}>
       {needsModel ? (
         <Card tone="primary">
           <View style={{ gap: Spacing.md }}>

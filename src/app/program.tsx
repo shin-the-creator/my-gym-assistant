@@ -56,6 +56,7 @@ export default function ProgramScreen() {
 
   return (
     <Screen
+      narrow
       edges={['bottom']}
       footer={
         <Row gap={Spacing.sm}>

@@ -32,11 +32,14 @@ export function Screen({
   scroll = true,
   edges = ['top'],
   footer,
+  narrow,
 }: {
   children: ReactNode;
   scroll?: boolean;
   edges?: ('top' | 'bottom')[];
   footer?: ReactNode;
+  /** 폼·메뉴 화면: 아이패드에서도 읽기 좋은 폭(720)으로 가운데 정렬 */
+  narrow?: boolean;
 }) {
   const c = useTheme();
   const { isTablet } = useLayout();
@@ -46,7 +49,8 @@ export function Screen({
   const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef>(null);
   useScrollToTop(webScrollRef);
   useScrollToTop(keyboardScrollRef);
-  const inner = <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: pad, gap: Spacing.xl }]}>{children}</View>;
+  const width = narrow ? { maxWidth: 720 } : null;
+  const inner = <View style={[styles.inner, width, { paddingHorizontal: pad, paddingTop: pad, gap: Spacing.xl }]}>{children}</View>;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
       {scroll ? (
@@ -65,7 +69,7 @@ export function Screen({
       )}
       {footer ? (
         <View style={{ borderTopWidth: 1, borderColor: c.border, backgroundColor: c.background, paddingHorizontal: pad, paddingVertical: Spacing.md }}>
-          <View style={styles.inner}>{footer}</View>
+          <View style={[styles.inner, width]}>{footer}</View>
         </View>
       ) : null}
     </SafeAreaView>
@@ -96,7 +100,7 @@ export function T({ children, kind = 'body', style, numberOfLines }: { children:
     secondary: { fontSize: 14, color: c.textSecondary, lineHeight: 20 },
     small: { fontSize: 12, color: c.textSecondary, lineHeight: 17 },
     heading: { fontSize: 17, fontWeight: '600', color: c.text },
-    label: { fontSize: 11, fontWeight: '600', color: c.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase' },
+    label: { fontSize: 12, fontWeight: '600', color: c.textSecondary, letterSpacing: 0.3 },
     big: { fontSize: 30, fontWeight: '700', color: c.text, ...NUM },
   };
   return (
@@ -306,15 +310,16 @@ export function Metric({
   unit: string;
   goal: number;
   goalText?: string;
-  size?: 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   footnote?: string;
 }) {
   const c = useTheme();
   const big = size === 'lg';
+  const small = size === 'sm';
   const v = value ?? 0;
   const pct = goal > 0 ? Math.min(1, v / goal) : 0;
   return (
-    <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, padding: big ? Spacing.xl : 20, gap: 16 }]}>
+    <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, padding: big ? Spacing.xl : small ? 14 : 20, gap: small ? 10 : 16 }]}>
       <View style={styles.row}>
         <T kind="label" style={{ flex: 1 }}>
           {label}
@@ -322,10 +327,10 @@ export function Metric({
         <Text style={[{ color: c.textSecondary, fontSize: 13, fontWeight: '500' }, NUM]}>{value === null ? '' : `${Math.round(pct * 100)}%`}</Text>
       </View>
       <Text numberOfLines={1} adjustsFontSizeToFit>
-        <Text style={[{ color: value === null ? c.faint : c.text, fontSize: big ? 64 : 40, fontWeight: '700', letterSpacing: big ? -2 : -1 }, NUM]}>
+        <Text style={[{ color: value === null ? c.faint : c.text, fontSize: big ? 64 : small ? 26 : 40, fontWeight: '700', letterSpacing: big ? -2 : -1 }, NUM]}>
           {value === null ? '--' : Math.round(v).toLocaleString('ko-KR')}
         </Text>
-        <Text style={{ color: c.faint, fontSize: big ? 18 : 15, fontWeight: '500' }}> {unit}</Text>
+        <Text style={{ color: c.faint, fontSize: big ? 18 : small ? 12 : 15, fontWeight: '500' }}> {unit}</Text>
       </Text>
       <View style={{ gap: 8 }}>
         <Progress value={pct} />
@@ -465,6 +470,90 @@ export function ListRow({
   );
 }
 
+/** 요일 고르기: 월~일 7칸 동그라미(한 줄에 딱 맞게) */
+export function WeekdayPicker({ value, onChange }: { value: number[]; onChange: (days: number[]) => void }) {
+  const c = useTheme();
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const names = ['일', '월', '화', '수', '목', '금', '토'];
+  return (
+    <View style={{ flexDirection: 'row', gap: 6 }}>
+      {order.map((d) => {
+        const on = value.includes(d);
+        return (
+          <Pressable
+            key={d}
+            onPress={() => onChange(on ? value.filter((x) => x !== d) : [...value, d])}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: on }}
+            accessibilityLabel={`${names[d]}요일`}
+            style={({ pressed }) => ({
+              flex: 1,
+              aspectRatio: 1,
+              maxWidth: 48,
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: on ? c.text : c.border,
+              backgroundColor: on ? c.text : 'transparent',
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: pressed ? 0.7 : 1,
+            })}>
+            <Text style={{ color: on ? c.primaryText : c.text, fontWeight: on ? '700' : '500', fontSize: 14 }}>{names[d]}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** 더보기 메뉴의 한 묶음: 회색 섹션 제목 + 구분선 목록 */
+export function MenuSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <View>
+      <SectionLabel>{title}</SectionLabel>
+      <ListCard>{children}</ListCard>
+    </View>
+  );
+}
+
+/** 더보기 메뉴 한 줄: 아이콘 · 이름 · 오른쪽 현재 값 · 화살표(또는 스위치 등) */
+export function MenuRow({
+  icon,
+  title,
+  value,
+  onPress,
+  right,
+  danger,
+}: {
+  icon?: IconName;
+  title: string;
+  value?: string;
+  onPress?: () => void;
+  right?: ReactNode;
+  danger?: boolean;
+}) {
+  const c = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={value ? `${title} ${value}` : title}
+      style={({ pressed }) => [styles.menuRow, { opacity: pressed ? 0.6 : 1 }]}>
+      {icon ? <Ionicons name={icon} size={19} color={danger ? c.danger : c.textSecondary} /> : null}
+      <Text style={{ flex: 1, fontSize: 16, color: danger ? c.danger : c.text }} numberOfLines={1}>
+        {title}
+      </Text>
+      {value ? (
+        <Text style={{ fontSize: 14, color: c.textSecondary, maxWidth: '55%' }} numberOfLines={1}>
+          {value}
+        </Text>
+      ) : null}
+      {right ?? (onPress && !danger ? <Ionicons name="chevron-forward" size={16} color={c.faint} /> : null)}
+    </Pressable>
+  );
+}
+
 /** 이전 화면들에서 쓰던 단순 목록 줄 */
 export function ListItem({ title, subtitle, icon, right, onPress }: { title: string; subtitle?: string; icon?: IconName; right?: ReactNode; onPress?: () => void }) {
   return <ListRow title={title} subtitle={subtitle} marker={icon} right={right} onPress={onPress} />;
@@ -487,5 +576,6 @@ const styles = StyleSheet.create({
   notice: { flexDirection: 'row', gap: 10, padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1 },
   listCard: { borderRadius: Radius.lg, borderWidth: 1, overflow: 'hidden' },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 14 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, minHeight: 54, paddingVertical: 12 },
   marker: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

@@ -5,12 +5,12 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { TimeField, YearField } from '@/components/pickers';
-import { Button, Card, Chip, ChipRow, Field, Grid, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Chip, ChipRow, Field, Grid, Row, Screen, T, WeekdayPicker } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { ACTIVITY_LABELS, GOAL_LABELS } from '@/lib/body';
 import { notify } from '@/lib/confirm';
-import { DAY_NAMES, describeSlot, getSlots, scheduledDaysPerWeek } from '@/lib/workout-slots';
+import { describeSlot, getSlots, scheduledDaysPerWeek } from '@/lib/workout-slots';
 import { newId, useStore } from '@/store/useStore';
 import type { ActivityLevel, Experience, Goal, Profile, Sex, WorkoutSlot } from '@/types/models';
 
@@ -19,9 +19,6 @@ const EXPERIENCE_LABELS: Record<Experience, string> = {
   intermediate: '중급 (1~3년)',
   advanced: '상급 (3년 이상)',
 };
-
-// 요일 칩은 월요일부터 보여 준다
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
 
 const num = (v: string) => {
   const n = parseFloat(v.replace(',', '.'));
@@ -52,8 +49,6 @@ export default function ProfileScreen() {
   );
   const fixedDays = scheduledDaysPerWeek(slots);
   const updateSlot = (id: string, patch: Partial<WorkoutSlot>) => setSlots((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const toggleDay = (slot: WorkoutSlot, day: number) =>
-    updateSlot(slot.id, { days: slot.days.includes(day) ? slot.days.filter((d) => d !== day) : [...slot.days, day] });
   const [avoid, setAvoid] = useState(existing?.avoidFoods.join(', ') ?? '');
 
   const save = () => {
@@ -96,7 +91,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen narrow edges={['bottom']}>
       <Grid>
         <Card title="기본 정보" icon="person">
           <View style={{ gap: Spacing.md }}>
@@ -178,11 +173,7 @@ export default function ProfileScreen() {
                   <T style={{ fontWeight: '600', flex: 1 }}>{describeSlot(slot)}</T>
                   {slots.length > 1 ? <Button small kind="ghost" title="삭제" icon="trash-outline" onPress={() => setSlots((list) => list.filter((s) => s.id !== slot.id))} /> : null}
                 </Row>
-                <ChipRow>
-                  {WEEK_ORDER.map((d) => (
-                    <Chip key={d} label={DAY_NAMES[d]} selected={slot.days.includes(d)} onPress={() => toggleDay(slot, d)} />
-                  ))}
-                </ChipRow>
+                <WeekdayPicker value={slot.days} onChange={(days) => updateSlot(slot.id, { days })} />
                 <Row wrap>
                   <TimeField label="시간" value={slot.time} onChange={(time) => updateSlot(slot.id, { time })} />
                   <Field label="이름(선택)" value={slot.label ?? ''} onChangeText={(label) => updateSlot(slot.id, { label })} placeholder="예: 웨이트, 아침 유산소" />

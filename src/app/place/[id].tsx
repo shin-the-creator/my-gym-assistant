@@ -222,7 +222,7 @@ export default function PlaceDetailScreen() {
                 const list = candidatesFor(p, place, profile.experience);
                 return (
                   <Row key={p} style={{ paddingVertical: 6, alignItems: 'flex-start' }}>
-                    <Icon name={list.length ? 'checkmark-circle' : 'close-circle'} color={list.length ? c.good : c.danger} />
+                    <Icon name={list.length ? 'checkmark-circle' : 'remove-circle-outline'} color={list.length ? c.text : c.faint} />
                     <View style={{ flex: 1 }}>
                       <T style={{ fontWeight: '600' }}>{PATTERN_NAMES[p]}</T>
                       <T kind="small">{list.length ? list.slice(0, 3).map((e) => e.name).join(' · ') : '해당 기구 없음'}</T>

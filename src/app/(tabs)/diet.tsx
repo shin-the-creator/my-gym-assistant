@@ -48,15 +48,18 @@ export default function DietScreen() {
   const gauges = (
     <View style={{ gap: Spacing.md }}>
       <Metric label="먹은 칼로리" value={eaten.kcal} unit="kcal" goal={t.calories} size="lg" />
-      <Row gap={Spacing.md} style={{ alignItems: 'stretch' }}>
+      {/* 탄단지는 한 줄 세 칸으로 나란히 */}
+      <Row gap={Spacing.sm} style={{ alignItems: 'stretch' }}>
         <View style={{ flex: 1 }}>
-          <Metric label="단백질" value={eaten.protein} unit="g" goal={t.proteinG} footnote={`목표 ${t.proteinG}g`} />
+          <Metric size="sm" label="단백질" value={eaten.protein} unit="g" goal={t.proteinG} footnote={`/ ${t.proteinG}g`} />
         </View>
         <View style={{ flex: 1 }}>
-          <Metric label="탄수화물" value={eaten.carbs} unit="g" goal={t.carbsG} footnote={`목표 ${t.carbsG}g`} />
+          <Metric size="sm" label="탄수화물" value={eaten.carbs} unit="g" goal={t.carbsG} footnote={`/ ${t.carbsG}g`} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Metric size="sm" label="지방" value={eaten.fat} unit="g" goal={t.fatG} footnote={`/ ${t.fatG}g`} />
         </View>
       </Row>
-      <Metric label="지방" value={eaten.fat} unit="g" goal={t.fatG} />
       <Row gap={Spacing.sm}>
         <Button title="사진으로 기록" icon="camera" onPress={() => router.push({ pathname: '/food', params: { date, mode: 'photo' } })} style={{ flex: 1 }} />
         <Button title="검색·입력" kind="secondary" icon="search" onPress={() => router.push({ pathname: '/food', params: { date, mode: 'search' } })} style={{ flex: 1 }} />

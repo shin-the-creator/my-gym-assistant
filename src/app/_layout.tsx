@@ -57,7 +57,9 @@ export default function RootLayout() {
         <Stack.Screen name="place/new" options={{ title: '장소 추가', presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="place/[id]" options={{ title: '장소' }} />
         <Stack.Screen name="session" options={{ title: '운동 기록', gestureEnabled: false }} />
-        <Stack.Screen name="settings" options={{ title: '설정' }} />
+        <Stack.Screen name="settings" options={{ title: '사진 분석 AI 키' }} />
+        <Stack.Screen name="places" options={{ title: '운동 장소' }} />
+        <Stack.Screen name="guide" options={{ title: '앱 사용 방법' }} />
         <Stack.Screen name="coach" options={{ title: 'AI 코치' }} />
         <Stack.Screen name="food" options={{ title: '음식 기록', presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="school" options={{ title: '학교 급식 연결' }} />

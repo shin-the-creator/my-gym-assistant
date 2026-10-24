@@ -56,14 +56,14 @@ export default function AiModelScreen() {
 
   if (!localAiSupported) {
     return (
-      <Screen edges={['bottom']}>
+      <Screen narrow edges={['bottom']}>
         <Notice tone="warn">폰 안에서 도는 AI는 안드로이드·아이폰 앱에서만 쓸 수 있어요.</Notice>
       </Screen>
     );
   }
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen narrow edges={['bottom']}>
       <View style={{ gap: Spacing.sm }}>
         <SectionLabel>AI 코치 엔진</SectionLabel>
         <ChipRow>

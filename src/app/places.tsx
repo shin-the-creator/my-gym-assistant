@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { Button, Card, Empty, Grid, Icon, Progress, Row, Screen, T, Title } from '@/components/ui';
+import { Button, Card, Empty, Grid, Icon, Progress, Row, Screen, T } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { equipmentName } from '@/data/equipment';
 import { PLACE_KINDS } from '@/data/places';
@@ -24,15 +24,14 @@ export default function PlacesScreen() {
   const [reorder, setReorder] = useState(false);
 
   return (
-    <Screen>
-      <Title subtitle="장소마다 기구를 등록해 두면 그 곳에 맞춘 루틴을 짜 드려요" right={
-          <Row gap={6}>
-            {places.length > 1 ? <Button small kind={reorder ? 'primary' : 'secondary'} title={reorder ? '완료' : '순서'} icon={reorder ? 'checkmark' : 'swap-vertical'} onPress={() => setReorder(!reorder)} /> : null}
-            {!reorder ? <Button small title="추가" icon="add" onPress={() => router.push('/place/new')} /> : null}
-          </Row>
-        }>
-        운동 장소
-      </Title>
+    <Screen edges={['bottom']}>
+      <Row>
+        <T kind="secondary" style={{ flex: 1 }}>장소마다 기구를 등록해 두면 그 곳에 맞춘 루틴을 짜 드려요</T>
+        <Row gap={6}>
+          {places.length > 1 ? <Button small kind={reorder ? 'primary' : 'secondary'} title={reorder ? '완료' : '순서'} icon={reorder ? 'checkmark' : 'swap-vertical'} onPress={() => setReorder(!reorder)} /> : null}
+          {!reorder ? <Button small title="추가" icon="add" onPress={() => router.push('/place/new')} /> : null}
+        </Row>
+      </Row>
 
       {places.length === 0 ? (
         <Card>

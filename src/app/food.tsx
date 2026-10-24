@@ -116,6 +116,7 @@ export default function FoodScreen() {
 
   return (
     <Screen
+      narrow
       edges={['bottom']}
       footer={
         <Row>

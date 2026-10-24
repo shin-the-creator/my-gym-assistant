@@ -2,9 +2,9 @@
 
 import { router } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Button, Card, Empty, Icon, type IconName, ListCard, ListRow, Metric, Row, Screen, SectionLabel, T, Title } from '@/components/ui';
+import { Button, Card, Empty, type IconName, ListCard, ListRow, Metric, Progress, Row, Screen, SectionLabel, T, Title } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { PATTERN_NAMES } from '@/data/exercises';
 import { useProgram, useToday } from '@/hooks/use-plan';
@@ -61,16 +61,11 @@ export default function TodayScreen() {
   const date = new Date(now);
   const dateText = `${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[date.getDay()]}`;
 
-  const settingsButton = (
-    <Pressable onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="설정" style={{ paddingTop: 2 }}>
-      <Icon name="settings-outline" size={22} />
-    </Pressable>
-  );
 
   if (!profile || !today) {
     return (
       <Screen>
-        <Title eyebrow={dateText} right={settingsButton}>
+        <Title eyebrow={dateText}>
           내 정보를 알려 주세요.
         </Title>
         <Card>
@@ -142,14 +137,24 @@ export default function TodayScreen() {
           />
         </View>
       </Row>
-      <View style={{ gap: Spacing.sm }}>
-        <Metric label="물" value={today.waterDrunk} unit="ml" goal={today.waterTarget} />
-        <Row gap={Spacing.sm}>
-          <Button small kind="secondary" title="+ 250ml" onPress={() => addWater(250)} style={{ flex: 1 }} />
-          <Button small kind="secondary" title="+ 500ml" onPress={() => addWater(500)} style={{ flex: 1 }} />
-          <Button small kind="ghost" title="되돌리기" onPress={() => addWater(-250)} />
-        </Row>
-      </View>
+      {/* 물: 한 장의 작은 카드에 숫자·게이지·버튼을 함께 */}
+      <Card>
+        <View style={{ gap: 10 }}>
+          <Row>
+            <T kind="label" style={{ flex: 1 }}>물</T>
+            <T style={{ fontWeight: '700', fontVariant: ['tabular-nums'] }}>
+              {today.waterDrunk.toLocaleString('ko-KR')}
+              <T kind="small">{` / ${today.waterTarget.toLocaleString('ko-KR')}ml`}</T>
+            </T>
+          </Row>
+          <Progress value={today.waterDrunk / today.waterTarget} />
+          <Row gap={Spacing.sm}>
+            <Button small kind="secondary" title="+ 250ml" onPress={() => addWater(250)} style={{ flex: 1 }} />
+            <Button small kind="secondary" title="+ 500ml" onPress={() => addWater(500)} style={{ flex: 1 }} />
+            <Button small kind="ghost" title="되돌리기" onPress={() => addWater(-250)} />
+          </Row>
+        </View>
+      </Card>
     </View>
   );
 
@@ -244,7 +249,7 @@ export default function TodayScreen() {
 
   return (
     <Screen footer={footer}>
-      <Title eyebrow={dateText} right={settingsButton}>
+      <Title eyebrow={dateText}>
         {headline}
       </Title>
       {columns > 1 ? (

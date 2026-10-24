@@ -7,10 +7,10 @@ import { useLayout, useTheme } from '@/hooks/use-theme';
 const TABS: { name: string; title: string; icon: IconName; iconActive: IconName }[] = [
   { name: 'index', title: '오늘', icon: 'today-outline', iconActive: 'today' },
   { name: 'workout', title: '운동', icon: 'barbell-outline', iconActive: 'barbell' },
-  { name: 'places', title: '장소', icon: 'location-outline', iconActive: 'location' },
   { name: 'diet', title: '식단', icon: 'restaurant-outline', iconActive: 'restaurant' },
   { name: 'calendar', title: '달력', icon: 'calendar-outline', iconActive: 'calendar' },
   { name: 'body', title: '내 몸', icon: 'body-outline', iconActive: 'body' },
+  { name: 'more', title: '더보기', icon: 'ellipsis-horizontal-circle-outline', iconActive: 'ellipsis-horizontal-circle' },
 ];
 
 export default function TabLayout() {

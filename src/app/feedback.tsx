@@ -48,7 +48,7 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen narrow edges={['bottom']}>
       <Card>
         <View style={{ gap: Spacing.md }}>
           <T kind="label">어떤 이야기인가요?</T>

@@ -28,7 +28,7 @@ function WeightChart() {
         {recent.map((w) => (
           <View key={w.date} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
             <T kind="small" style={{ fontSize: 10 }}>{w.weightKg}</T>
-            <View style={{ width: '70%', height: `${((w.weightKg - min) / (max - min)) * 80 + 10}%`, backgroundColor: c.primary, borderRadius: Radius.sm }} />
+            <View style={{ width: 8, height: `${((w.weightKg - min) / (max - min)) * 80 + 10}%`, backgroundColor: w === recent[recent.length - 1] ? c.text : c.track, borderRadius: Radius.pill }} />
           </View>
         ))}
       </View>
@@ -41,6 +41,7 @@ function WeightChart() {
 }
 
 export default function BodyScreen() {
+  const c = useTheme();
   const profile = useStore((s) => s.profile);
   const weights = useStore((s) => s.weights);
   const addWeight = useStore((s) => s.addWeight);
@@ -129,7 +130,7 @@ export default function BodyScreen() {
                 <T style={{ flex: 1 }}>
                   {o.hours}시간 ({o.cycles}주기)
                 </T>
-                {o.recommended ? <T kind="small">✅ 권장</T> : null}
+                {o.recommended ? <T kind="small" style={{ color: c.text, borderWidth: 1, borderColor: c.border, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 }}>권장</T> : null}
               </Row>
             ))}
             <T kind="small">근육 회복과 식욕 조절에 수면이 가장 중요해요. 주말에도 기상 시간을 1시간 이상 바꾸지 마세요.</T>

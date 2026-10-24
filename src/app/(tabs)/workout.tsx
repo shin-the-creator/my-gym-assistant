@@ -2,7 +2,7 @@
 
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, ChipRow, Empty, Grid, Icon, ListItem, Notice, Row, Screen, T, Title } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
@@ -96,7 +96,7 @@ export default function WorkoutScreen() {
       ) : (
         <Grid>
           <View style={{ gap: Spacing.lg }}>
-            <Card title="어디서 운동하나요?" icon="location">
+            <Card title="어디서 운동하나요?" icon="location" right={<Button small kind="ghost" title="장소 관리" onPress={() => router.push('/places')} />}>
               <ChipRow>
                 {places.map((p) => (
                   <Chip key={p.id} icon={PLACE_KINDS[p.kind].icon} label={p.name} selected={p.id === place?.id} onPress={() => { setPlaceId(p.id); setOverrides({}); }} />
@@ -106,45 +106,43 @@ export default function WorkoutScreen() {
 
             {day && place ? (
               <Card title={`${day.name} @ ${place.name}`} icon="barbell" right={<T kind="small">{day.focus}</T>}>
-                {plan.map((item, i) => (
-                  <View key={i} style={{ paddingVertical: Spacing.sm, borderBottomWidth: i < plan.length - 1 ? 0.5 : 0, borderColor: c.border, gap: 4 }}>
-                    <Row style={{ alignItems: 'flex-start' }}>
-                      <T kind="small" style={{ width: 22, marginTop: 2 }}>{i + 1}</T>
-                      <View style={{ flex: 1 }}>
-                        <T kind="small">{PATTERN_NAMES[item.slot.pattern]}{item.slot.role === 'main' ? ' · 메인' : ''}</T>
-                        {item.exercise ? (
-                          <T style={{ fontWeight: '700' }}>{item.exercise.name}</T>
-                        ) : (
-                          <T kind="secondary">이 장소에선 생략</T>
-                        )}
-                        {item.prescription ? (
-                          <T kind="secondary">
-                            {item.prescription.sets}세트 × {item.prescription.target}
-                            {item.prescription.restSec ? ` · 휴식 ${item.prescription.restSec}초` : ''}
+                {plan.map((item, i) => {
+                  // 기본 선택 이유(가장 효과적인 운동)는 매번 반복되니 숨기고, 특별한 이유만 보여 준다
+                  const note = item.exercise && !item.reason.startsWith('이 장소 기구로 할 수 있는') ? item.reason : !item.exercise ? item.reason : '';
+                  const rx = item.prescription;
+                  return (
+                    <View key={i} style={{ paddingVertical: 12, borderBottomWidth: i < plan.length - 1 ? StyleSheet.hairlineWidth : 0, borderColor: c.border, gap: 8 }}>
+                      <Row gap={12}>
+                        <T kind="small" style={{ width: 18, fontVariant: ['tabular-nums'] }}>{i + 1}</T>
+                        <View style={{ flex: 1 }}>
+                          <T style={{ fontWeight: '600', color: item.exercise ? c.text : c.faint }}>{item.exercise ? item.exercise.name : PATTERN_NAMES[item.slot.pattern]}</T>
+                          <T kind="small">
+                            {rx ? `${PATTERN_NAMES[item.slot.pattern]} · ${rx.sets}세트 × ${rx.target}${rx.restSec ? ` · 휴식 ${rx.restSec}초` : ''}` : '이 장소에선 생략'}
+                            {note ? ` · ${note}` : ''}
                           </T>
+                        </View>
+                        {item.slot.role === 'main' && item.exercise ? <T kind="small" style={{ color: c.text }}>메인</T> : null}
+                        {item.alternatives.length > 0 ? (
+                          <Button small kind="ghost" title="" icon="swap-horizontal" onPress={() => setSwapping(swapping === i ? null : i)} />
                         ) : null}
-                        <T kind="small">{item.reason}</T>
-                      </View>
-                      {item.alternatives.length > 0 ? (
-                        <Button small kind="ghost" title="교체" icon="swap-horizontal" onPress={() => setSwapping(swapping === i ? null : i)} />
+                      </Row>
+                      {swapping === i ? (
+                        <ChipRow>
+                          {item.alternatives.map((alt) => (
+                            <Chip
+                              key={alt.id}
+                              label={alt.name}
+                              onPress={() => {
+                                setOverrides({ ...overrides, [i]: alt.id });
+                                setSwapping(null);
+                              }}
+                            />
+                          ))}
+                        </ChipRow>
                       ) : null}
-                    </Row>
-                    {swapping === i ? (
-                      <ChipRow>
-                        {item.alternatives.map((alt) => (
-                          <Chip
-                            key={alt.id}
-                            label={alt.name}
-                            onPress={() => {
-                              setOverrides({ ...overrides, [i]: alt.id });
-                              setSwapping(null);
-                            }}
-                          />
-                        ))}
-                      </ChipRow>
-                    ) : null}
-                  </View>
-                ))}
+                    </View>
+                  );
+                })}
                 <Button title="이 루틴으로 운동 시작" icon="play" onPress={start} style={{ marginTop: Spacing.md }} />
               </Card>
             ) : null}

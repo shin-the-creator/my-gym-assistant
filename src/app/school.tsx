@@ -32,7 +32,7 @@ export default function SchoolScreen() {
   };
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen narrow edges={['bottom']}>
       {current ? (
         <View>
           <SectionLabel>등록된 학교</SectionLabel>
