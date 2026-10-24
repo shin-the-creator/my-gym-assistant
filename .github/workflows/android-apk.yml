@@ -3,10 +3,9 @@
 # 휴대폰 브라우저에서 바로 내려받아 설치할 수 있다(컴퓨터 불필요).
 name: Android APK
 
+# 코딩이 모두 끝난 뒤에만 수동으로 실행한다(푸시할 때마다 빌드하지 않음).
+# GitHub 저장소 → Actions → Android APK → Run workflow 로 실행할 수 있다.
 on:
-  push:
-    branches: [main, claude/healthcare-trainer-app-e2l5g2]
-    paths-ignore: ['**.md']
   workflow_dispatch:
 
 permissions:
