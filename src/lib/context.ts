@@ -5,6 +5,7 @@ import { getExercise } from '@/data/exercises';
 import type { Place, Profile, WeightEntry, WorkoutLog } from '@/types/models';
 import { ACTIVITY_LABELS, GOAL_LABELS, ageFrom, bmi, macroTargets, navyBodyFat } from './body';
 import type { ProgramDay } from './routine';
+import { describeSlot, getSlots } from './workout-slots';
 
 export function coachContext(p: Profile, program: ProgramDay[], places: Place[], workouts: WorkoutLog[], weights: WeightEntry[]): string {
   const fat = p.bodyFatPct ?? navyBodyFat(p);
@@ -12,7 +13,7 @@ export function coachContext(p: Profile, program: ProgramDay[], places: Place[],
   const lines = [
     `- ${p.sex === 'male' ? '남성' : '여성'}, ${ageFrom(p.birthYear)}세, ${p.heightCm}cm, ${p.weightKg}kg, BMI ${bmi(p.weightKg, p.heightCm).toFixed(1)}${fat !== undefined ? `, 체지방률 약 ${fat.toFixed(1)}%` : ''}`,
     `- 목표: ${GOAL_LABELS[p.goal]}, 경력: ${p.experience}, 주 ${p.workoutDaysPerWeek}회, 활동량: ${ACTIVITY_LABELS[p.activity]}`,
-    `- 기상 ${p.wakeTime}, 운동 시간 ${p.workoutTime}${p.avoidFoods.length ? `, 피하는 음식: ${p.avoidFoods.join(', ')}` : ''}`,
+    `- 기상 ${p.wakeTime}, 운동 시간: ${getSlots(p).map(describeSlot).join(' / ')}${p.avoidFoods.length ? `, 피하는 음식: ${p.avoidFoods.join(', ')}` : ''}`,
     `- 하루 목표: ${t.calories}kcal, 단백질 ${t.proteinG}g, 탄수화물 ${t.carbsG}g, 지방 ${t.fatG}g`,
     `- 분할 프로그램: ${program.map((d) => `${d.name}(${d.focus})`).join(' → ')}`,
     `- 운동 장소:`,

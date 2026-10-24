@@ -23,10 +23,22 @@ export interface Profile {
   workoutDaysPerWeek: number;
   /** "HH:MM" */
   wakeTime: string;
-  /** "HH:MM" — 운동하는 대략적인 시각 */
+  /** "HH:MM" — 예전 버전의 단일 운동 시각(운동 시간대가 없을 때 쓴다) */
   workoutTime: string;
+  /** 운동 시간대 여러 개: 요일별 시각, 하루 두 번(아침 유산소 + 저녁 웨이트)도 가능 */
+  workoutSlots?: WorkoutSlot[];
   /** 못 먹는 음식 키워드 (예: 우유, 땅콩) */
   avoidFoods: string[];
+}
+
+export interface WorkoutSlot {
+  id: string;
+  /** 0=일 … 6=토. 비어 있으면 요일을 정하지 않음(운동하는 날이면 이 시각) */
+  days: number[];
+  /** "HH:MM" */
+  time: string;
+  /** 예: 웨이트, 아침 유산소 */
+  label?: string;
 }
 
 export type PlaceKind = 'apartment_gym' | 'other_gym' | 'outdoor_bar' | 'home' | 'other';

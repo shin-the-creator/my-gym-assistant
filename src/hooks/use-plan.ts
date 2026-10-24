@@ -2,9 +2,10 @@
 
 import { useMemo } from 'react';
 
-import { macroTargets, waterTargetMl } from '@/lib/body';
+import { macroTargets } from '@/lib/body';
 import { buildProgram, nextDayIndex } from '@/lib/routine';
-import { buildDailySchedule } from '@/lib/schedule';
+import { buildDailySchedule, dailyWaterTarget } from '@/lib/schedule';
+import { getSlots, hasFixedDays, isScheduledWeekday } from '@/lib/workout-slots';
 import { dateKey } from '@/lib/time';
 import { useStore } from '@/store/useStore';
 
@@ -27,6 +28,11 @@ export function useIsWorkoutDay(): boolean {
     const today = dateKey();
     if (workouts.some((w) => w.date === today)) return true;
     const now = new Date();
+    // 운동 요일을 정해 두었으면 그 요일이 운동일. 요일 미정 시간대만 있으면 아래 자동 판단을 쓴다
+    if (hasFixedDays(profile)) {
+      if (isScheduledWeekday(profile, now.getDay())) return true;
+      if (!getSlots(profile).some((s) => s.days.length === 0)) return false;
+    }
     const monday = new Date(now);
     monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     const weekStart = dateKey(monday);
@@ -50,12 +56,13 @@ export function useToday() {
   return useMemo(() => {
     if (!profile) return null;
     const today = dateKey();
+    const schedule = buildDailySchedule(profile, workoutDay);
     return {
       today,
       workoutDay,
-      schedule: buildDailySchedule(profile, workoutDay),
+      schedule,
       targets: macroTargets(profile),
-      waterTarget: waterTargetMl(profile.weightKg, workoutDay),
+      waterTarget: dailyWaterTarget(profile.weightKg, schedule.filter((i) => i.kind === 'workout').length),
       waterDrunk: water[today] ?? 0,
     };
   }, [profile, water, workoutDay]);

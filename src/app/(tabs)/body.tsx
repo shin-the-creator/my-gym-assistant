@@ -11,6 +11,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { ACTIVITY_LABELS, ageFrom, bmi, bmiCategory, bmr, bodyInsights, healthyWeightRange, navyBodyFat, tdee } from '@/lib/body';
 import { bedtimeOptions, recommendedSleepHours } from '@/lib/schedule';
 import { dateKey } from '@/lib/time';
+import { formatTimeKo } from '@/lib/workout-slots';
 import { useStore } from '@/store/useStore';
 
 function WeightChart() {
@@ -116,7 +117,7 @@ export default function BodyScreen() {
             <T>
               {age}세 권장 수면: <T style={{ fontWeight: '700' }}>{sleepLo}~{sleepHi}시간</T>
             </T>
-            <T kind="secondary">{profile.wakeTime}에 일어나려면 이 시간에 잠자리에 드세요 (90분 수면 주기 + 잠드는 15분):</T>
+            <T kind="secondary">{formatTimeKo(profile.wakeTime)}에 일어나려면 이 시간에 잠자리에 드세요 (90분 수면 주기 + 잠드는 15분):</T>
             {bedtimeOptions(profile.wakeTime, age).map((o) => (
               <Row key={o.time}>
                 <T kind="heading" style={{ width: 64 }}>{o.time}</T>

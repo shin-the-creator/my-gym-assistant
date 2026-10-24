@@ -14,6 +14,7 @@ import { activeKcalGoal, stepGoal, stepsKcal, workoutKcal, workoutMinutesOn } fr
 import { planDay } from '@/lib/routine';
 import type { ScheduleKind } from '@/lib/schedule';
 import { estimateMinutes, toExerciseLogs } from '@/lib/session';
+import { formatTimeKo } from '@/lib/workout-slots';
 import { useStore } from '@/store/useStore';
 
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
@@ -109,6 +110,8 @@ export default function TodayScreen() {
         ? '오늘 운동을 시작하세요.'
         : '오늘은 회복하는 날이에요.';
 
+  // 오늘 일정에 잡힌 운동 시각(여러 번일 수 있음)
+  const workoutTimes = today.schedule.filter((i) => i.kind === 'workout').map((i) => formatTimeKo(i.time));
   const nowMin = date.getHours() * 60 + date.getMinutes();
   const upcoming = today.schedule.filter((i) => i.minutes >= nowMin).slice(0, 5);
 
@@ -153,7 +156,7 @@ export default function TodayScreen() {
   const routine = (
     <View style={{ gap: Spacing.xl }}>
       <View>
-        <SectionLabel right={rows.length ? `${doneCount}/${rows.length} 완료 · 약 ${planned}분` : undefined}>
+        <SectionLabel right={rows.length ? `${workoutTimes.length ? `${workoutTimes.join(', ')} · ` : ''}${doneCount}/${rows.length} 완료 · 약 ${planned}분` : undefined}>
           {day ? `오늘의 루틴 · ${day.name}` : '오늘의 루틴'}
         </SectionLabel>
         {!place ? (

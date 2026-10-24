@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { FoodLogSection, SchoolMealSection } from '@/components/food';
+import { DatePickerSheet } from '@/components/pickers';
 import { Button, Field, Icon, ListCard, ListRow, Row, Screen, SectionLabel, T, Title } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { getExercise } from '@/data/exercises';
@@ -134,6 +135,12 @@ export default function CalendarScreen() {
     return { year: d.getFullYear(), month: d.getMonth() };
   });
   const [selected, setSelected] = useState(today);
+  const [picking, setPicking] = useState(false);
+  const jumpTo = (date: string) => {
+    const d = new Date(`${date}T00:00:00`);
+    setCursor({ year: d.getFullYear(), month: d.getMonth() });
+    setSelected(date);
+  };
 
   const workouts = useStore((s) => s.workouts);
   const foodLog = useStore((s) => s.foodLog);
@@ -219,6 +226,9 @@ export default function CalendarScreen() {
 
   const header = (
     <Row gap={Spacing.sm}>
+      <Pressable onPress={() => setPicking(true)} hitSlop={10} accessibilityLabel="날짜로 이동" style={{ padding: 6 }}>
+        <Icon name="calendar-outline" size={20} color={c.text} />
+      </Pressable>
       <Pressable onPress={() => move(-1)} hitSlop={10} accessibilityLabel="이전 달" style={{ padding: 6 }}>
         <Icon name="chevron-back" size={22} color={c.text} />
       </Pressable>
@@ -258,6 +268,7 @@ export default function CalendarScreen() {
           <DayDetail key={selected} date={selected} />
         </>
       )}
+      <DatePickerSheet visible={picking} value={selected} title="날짜로 이동" onClose={() => setPicking(false)} onConfirm={jumpTo} />
       {!profile ? <Button title="내 정보 입력하기" kind="secondary" onPress={() => router.push('/profile')} /> : null}
     </Screen>
   );

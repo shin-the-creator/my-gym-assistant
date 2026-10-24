@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import { macroLine } from '@/components/food';
+import { DateField } from '@/components/pickers';
 import { Button, Card, Chip, ChipRow, Field, Icon, ListCard, ListRow, Notice, Row, Screen, SectionLabel, T } from '@/components/ui';
 import { Radius, Spacing } from '@/constants/theme';
 import { FOODS } from '@/data/foods';
@@ -30,7 +31,7 @@ const r1 = (n: number) => Math.round(n * 10) / 10;
 export default function FoodScreen() {
   const c = useTheme();
   const params = useLocalSearchParams<{ date?: string; mode?: Mode }>();
-  const date = params.date || dateKey();
+  const [date, setDate] = useState(params.date || dateKey());
   const addFood = useStore((s) => s.addFood);
 
   const [mode, setMode] = useState<Mode>(params.mode ?? 'photo');
@@ -122,8 +123,9 @@ export default function FoodScreen() {
           <Button title={`${MEAL_TITLES[meal]}으로 기록`} onPress={save} disabled={chosen.length === 0} />
         </Row>
       }>
+      <DateField label="먹은 날" value={date} onChange={setDate} max={dateKey()} />
       <View style={{ gap: Spacing.sm }}>
-        <SectionLabel right={date}>끼니</SectionLabel>
+        <SectionLabel>끼니</SectionLabel>
         <ChipRow>
           {(['breakfast', 'lunch', 'dinner', 'snack'] as MealSlotKey[]).map((s) => (
             <Chip key={s} label={MEAL_TITLES[s]} selected={meal === s} onPress={() => setMeal(s)} />
