@@ -1,4 +1,4 @@
-// 오늘: 차분한 상단 문구 → 핵심 수치(칼로리·시간·걸음) → 오늘의 루틴 → 하단 운동 시작 버튼
+// 오늘: 차분한 상단 문구 → 핵심 수치(운동 칼로리·시간·물) → 오늘의 루틴 → 하단 운동 시작 버튼
 
 import { router } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
@@ -8,9 +8,8 @@ import { Button, Card, Empty, type IconName, ListCard, ListRow, Metric, Progress
 import { Spacing } from '@/constants/theme';
 import { PATTERN_NAMES } from '@/data/exercises';
 import { useProgram, useToday } from '@/hooks/use-plan';
-import { useTodaySteps } from '@/hooks/use-steps';
 import { useLayout } from '@/hooks/use-theme';
-import { activeKcalGoal, stepGoal, stepsKcal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
+import { activeKcalGoal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
 import { planDay } from '@/lib/routine';
 import type { ScheduleKind } from '@/lib/schedule';
 import { EVENT_KINDS, eventsOn } from '@/lib/scheduler';
@@ -53,7 +52,6 @@ export default function TodayScreen() {
   const startWorkout = useStore((s) => s.startWorkout);
   const today = useToday();
   const { program, nextIndex } = useProgram();
-  const steps = useTodaySteps();
   const now = useNow(!!active);
   const { columns } = useLayout();
 
@@ -85,7 +83,7 @@ export default function TodayScreen() {
 
   // 핵심 수치
   const minutes = workoutMinutesOn(today.today, workouts, active, now);
-  const kcal = workoutKcal(minutes, profile.weightKg) + stepsKcal(steps ?? 0, profile.weightKg);
+  const kcal = workoutKcal(minutes, profile.weightKg);
   const planned = plan.length ? estimateMinutes(plan) : 45;
   const minuteGoal = today.workoutDay ? planned : 30;
   const doneToday = workouts.some((w) => w.date === today.today);
@@ -135,19 +133,12 @@ export default function TodayScreen() {
 
   const stats = (
     <View style={{ gap: Spacing.md }}>
-      <Metric label="활동 칼로리" value={kcal} unit="kcal" goal={activeKcalGoal(profile.goal)} size="lg" />
       <Row gap={Spacing.md} style={{ alignItems: 'stretch' }}>
         <View style={{ flex: 1 }}>
-          <Metric label="운동 시간" value={minutes} unit="분" goal={minuteGoal} />
+          <Metric label="운동 칼로리" value={kcal} unit="kcal" goal={activeKcalGoal(profile.goal)} />
         </View>
         <View style={{ flex: 1 }}>
-          <Metric
-            label="걸음 수"
-            value={steps}
-            unit="걸음"
-            goal={stepGoal(profile.goal)}
-            footnote={steps === null ? '이 기기에선 측정 불가' : undefined}
-          />
+          <Metric label="운동 시간" value={minutes} unit="분" goal={minuteGoal} />
         </View>
       </Row>
       {/* 물: 한 장의 작은 카드에 숫자·게이지·버튼을 함께 */}

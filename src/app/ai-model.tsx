@@ -57,7 +57,7 @@ export default function AiModelScreen() {
   if (!localAiSupported) {
     return (
       <Screen narrow edges={['bottom']}>
-        <Notice tone="warn">폰 안에서 도는 AI는 안드로이드·아이폰 앱에서만 쓸 수 있어요.</Notice>
+        <Notice tone="warn">폰 안에서 도는 AI는 안드로이드 앱에서만 쓸 수 있어요.</Notice>
       </Screen>
     );
   }

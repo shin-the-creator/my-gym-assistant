@@ -8,7 +8,7 @@ export function useTheme(): Palette {
   return Colors[scheme === 'dark' ? 'dark' : 'light'];
 }
 
-/** 화면 크기에 따른 레이아웃 정보 — 아이패드에서는 여러 열로 배치한다 */
+/** 화면 크기에 따른 레이아웃 정보 — 태블릿에서는 여러 열로 배치한다 */
 export function useLayout() {
   const { width, height } = useWindowDimensions();
   const isTablet = Math.min(width, height) >= TabletBreakpoint || width >= 900;

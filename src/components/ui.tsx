@@ -38,7 +38,7 @@ export function Screen({
   scroll?: boolean;
   edges?: ('top' | 'bottom')[];
   footer?: ReactNode;
-  /** 폼·메뉴 화면: 아이패드에서도 읽기 좋은 폭(720)으로 가운데 정렬 */
+  /** 폼·메뉴 화면: 태블릿에서도 읽기 좋은 폭(720)으로 가운데 정렬 */
   narrow?: boolean;
 }) {
   const c = useTheme();
@@ -140,7 +140,7 @@ export function Card({ children, title, icon, right, style, tone }: { children?:
   );
 }
 
-/** 아이패드에서는 여러 열, 폰에서는 한 열 */
+/** 태블릿에서는 여러 열, 폰에서는 한 열 */
 export function Grid({ children, min, gap = Spacing.md }: { children: ReactNode; min?: number; gap?: number }) {
   const { columns } = useLayout();
   const cols = Math.min(columns, min ?? columns);
@@ -335,7 +335,7 @@ export function Metric({
       <View style={{ gap: 8 }}>
         <Progress value={pct} />
         <T kind="small" style={NUM}>
-          {footnote ?? goalText ?? `목표 ${goal.toLocaleString('ko-KR')} ${unit} · 남은 ${Math.max(0, Math.round(goal - v)).toLocaleString('ko-KR')}`}
+          {footnote ?? goalText ?? (v >= goal ? `목표 ${goal.toLocaleString('ko-KR')}${unit} 달성` : `목표까지 ${Math.round(goal - v).toLocaleString('ko-KR')}${unit}`)}
         </T>
       </View>
     </View>

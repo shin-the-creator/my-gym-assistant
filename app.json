@@ -7,16 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mygymtrainer",
     "userInterfaceStyle": "dark",
-    "ios": {
-      "icon": "./assets/expo.icon",
-      "supportsTablet": true,
-      "bundleIdentifier": "com.mygymassistant.trainer",
-      "infoPlist": {
-        "NSCameraUsageDescription": "운동기구 사진을 찍어 장소에 있는 기구를 인식하는 데 사용해요.",
-        "NSPhotoLibraryUsageDescription": "앨범의 운동기구 사진을 불러오는 데 사용해요.",
-        "NSMotionUsageDescription": "오늘 걸음 수를 대시보드에 보여 주는 데 사용해요."
-      }
-    },
     "android": {
       "package": "com.mygymassistant.trainer",
       "adaptiveIcon": {
@@ -51,12 +41,6 @@
       "expo-notifications",
       "expo-secure-store",
       [
-        "expo-sensors",
-        {
-          "motionPermission": "오늘 걸음 수를 대시보드에 보여 주는 데 사용해요."
-        }
-      ],
-      [
         "llama.rn",
         {
           "enableOpenCLAndHexagon": false
@@ -67,6 +51,10 @@
       "typedRoutes": true,
       "reactCompiler": true
     },
-    "backgroundColor": "#121214"
+    "backgroundColor": "#121214",
+    "platforms": [
+      "android",
+      "web"
+    ]
   }
 }

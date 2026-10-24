@@ -12,7 +12,7 @@ export class LocalAiError extends Error {}
 
 const DIR = `${FileSystem.documentDirectory ?? ''}models/`;
 
-export const localAiSupported = Platform.OS === 'android' || Platform.OS === 'ios';
+export const localAiSupported = Platform.OS === 'android';
 export const deviceMemory = Device.totalMemory;
 
 export function modelPath(model: LocalModel): string {

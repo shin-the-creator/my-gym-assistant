@@ -16,7 +16,7 @@ const TABS: { name: string; title: string; icon: IconName; iconActive: IconName 
 export default function TabLayout() {
   const c = useTheme();
   const { isTablet, landscape } = useLayout();
-  // 아이패드: 왼쪽 사이드바(가로 모드에서는 라벨까지 보이는 넓은 사이드바)
+  // 태블릿: 왼쪽 사이드바(가로 모드에서는 라벨까지 보이는 넓은 사이드바)
   const sidebar = isTablet;
 
   return (

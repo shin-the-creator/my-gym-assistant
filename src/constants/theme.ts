@@ -44,7 +44,7 @@ export const Radius = {
   pill: 999,
 } as const;
 
-/** 이 너비 이상이면 아이패드(태블릿) 레이아웃 */
+/** 이 너비 이상이면 태블릿(갤럭시 탭) 레이아웃 */
 export const TabletBreakpoint = 768;
 export const MaxContentWidth = 1100;
 
