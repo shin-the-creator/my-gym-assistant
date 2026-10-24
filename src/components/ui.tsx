@@ -1,7 +1,8 @@
 // 공통 UI 컴포넌트 — 매트 다크 · 모노톤 · 큰 숫자 · 얇은 경계선
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ComponentProps, type ReactNode, Children, useState } from 'react';
+import { useScrollToTop } from 'expo-router';
+import { type ComponentProps, type ComponentRef, type ReactNode, Children, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -15,7 +16,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView, type KeyboardAwareScrollViewRef } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -40,17 +41,22 @@ export function Screen({
   const c = useTheme();
   const { isTablet } = useLayout();
   const pad = isTablet ? Spacing.xl : Spacing.lg;
+  // 이미 보고 있는 탭을 다시 누르면 맨 위로 부드럽게 스크롤한다
+  const webScrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const keyboardScrollRef = useRef<KeyboardAwareScrollViewRef>(null);
+  useScrollToTop(webScrollRef);
+  useScrollToTop(keyboardScrollRef);
   const inner = <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: pad, gap: Spacing.xl }]}>{children}</View>;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
       {scroll ? (
         // 입력칸을 누르면 키보드 위로 올라오도록 스크롤한다(웹은 브라우저가 처리)
         Platform.OS === 'web' ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={webScrollRef} contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
             {inner}
           </ScrollView>
         ) : (
-          <KeyboardAwareScrollView bottomOffset={24} contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
+          <KeyboardAwareScrollView ref={keyboardScrollRef} bottomOffset={24} contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
             {inner}
           </KeyboardAwareScrollView>
         )

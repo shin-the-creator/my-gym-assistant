@@ -49,15 +49,17 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: '600', fontSize: 17 },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: c.background },
+          // 안드로이드에서도 iOS처럼 옆에서 부드럽게 밀려 들어오는 전환
+          animation: 'ios_from_right',
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="profile" options={{ title: '내 정보', presentation: 'modal' }} />
-        <Stack.Screen name="place/new" options={{ title: '장소 추가', presentation: 'modal' }} />
+        <Stack.Screen name="profile" options={{ title: '내 정보', presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="place/new" options={{ title: '장소 추가', presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="place/[id]" options={{ title: '장소' }} />
         <Stack.Screen name="session" options={{ title: '운동 기록', gestureEnabled: false }} />
         <Stack.Screen name="settings" options={{ title: '설정' }} />
         <Stack.Screen name="coach" options={{ title: 'AI 코치' }} />
-        <Stack.Screen name="food" options={{ title: '음식 기록', presentation: 'modal' }} />
+        <Stack.Screen name="food" options={{ title: '음식 기록', presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="school" options={{ title: '학교 급식 연결' }} />
         <Stack.Screen name="feedback" options={{ title: '의견 보내기' }} />
       </Stack>

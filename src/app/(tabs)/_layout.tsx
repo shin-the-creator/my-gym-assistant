@@ -32,6 +32,10 @@ export default function TabLayout() {
         tabBarLabelPosition: sidebar && landscape ? 'beside-icon' : 'below-icon',
         tabBarLabelStyle: { fontSize: sidebar ? 14 : 10, fontWeight: '600' },
         sceneStyle: { backgroundColor: c.background },
+        // 탭을 바꿀 때 살짝 밀리며 페이드되는 전환
+        animation: 'shift',
+        // 탭을 미리 그려 두어 전환 중에 빈 화면이 보이지 않게 한다
+        lazy: false,
       }}>
       {TABS.map((t) => (
         <Tabs.Screen
