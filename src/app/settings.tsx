@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, Switch, View } from 'react-native';
 
-import { Button, Card, Field, Notice, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Field, ListRow, Notice, Row, Screen, T } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { BUILT_IN_KEY, clearApiKey, getSavedApiKey, setApiKey } from '@/lib/ai';
@@ -18,6 +18,7 @@ export default function SettingsScreen() {
   const settings = useStore((s) => s.settings);
   const updateSettings = useStore((s) => s.updateSettings);
   const resetAll = useStore((s) => s.resetAll);
+  const school = useStore((s) => s.school);
   const [key, setKey] = useState('');
   const [hasKey, setHasKey] = useState(false);
 
@@ -94,6 +95,11 @@ export default function SettingsScreen() {
         {reminderRow('mealReminders', '식사·간식 알림', '식사와 운동 전후 간식 시간')}
         {reminderRow('sleepReminder', '취침 알림', '잠들 준비 1시간 전 + 취침 시각')}
         <T kind="small">알림 시각은 내 정보의 기상·운동 시간으로 계산되고, 정보를 바꾸면 자동으로 다시 맞춰져요.</T>
+      </Card>
+
+      <Card title="급식 · 의견" icon="school">
+        <ListRow marker="school-outline" title="학교 급식 연결" subtitle={school ? school.name : '학교를 등록하면 급식 메뉴·영양이 식단과 달력에 나와요'} onPress={() => router.push('/school')} />
+        <ListRow marker="mail-outline" title="의견 보내기" subtitle="불편한 점이나 원하는 기능을 알려 주세요" onPress={() => router.push('/feedback')} />
       </Card>
 
       <Card title="데이터" icon="server">

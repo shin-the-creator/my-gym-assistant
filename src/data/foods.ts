@@ -1,6 +1,7 @@
 // 한국에서 쉽게 구할 수 있는 음식 위주의 영양 데이터(1회 제공량 기준, 대략값).
 
-export type FoodRole = 'protein' | 'carb' | 'veg' | 'fat' | 'fruit' | 'dairy';
+// dish: 한 그릇 음식·간식(기록용). 식단 추천에는 쓰지 않는다
+export type FoodRole = 'protein' | 'carb' | 'veg' | 'fat' | 'fruit' | 'dairy' | 'dish';
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface Food {
@@ -65,6 +66,24 @@ export const FOODS: Food[] = [
   { id: 'milk', name: '저지방 우유', role: 'dairy', serving: '200ml', kcal: 85, protein: 7, carbs: 10, fat: 2, meals: ['breakfast', 'snack'], tags: ['유제품', '우유'] },
   { id: 'apple', name: '사과', role: 'fruit', serving: '중 1개', kcal: 95, protein: 0.5, carbs: 25, fat: 0.3, meals: ['breakfast', 'snack'], tags: [] },
   { id: 'blueberries', name: '블루베리', role: 'fruit', serving: '100g', kcal: 57, protein: 0.7, carbs: 14, fat: 0.3, meals: ['breakfast', 'snack'], tags: [] },
+
+  // 자주 먹는 한 그릇 음식·간식(기록용)
+  { id: 'kimbap', name: '김밥', role: 'dish', serving: '1줄', kcal: 480, protein: 14, carbs: 75, fat: 13, meals: ALL, tags: ['쌀'] },
+  { id: 'triangle_kimbap', name: '삼각김밥', role: 'dish', serving: '1개', kcal: 200, protein: 5, carbs: 38, fat: 3, meals: ['breakfast', 'lunch', 'snack'], tags: ['쌀'] },
+  { id: 'ramen', name: '라면', role: 'dish', serving: '1봉지', kcal: 500, protein: 10, carbs: 78, fat: 16, meals: ['lunch', 'dinner', 'snack'], tags: ['밀', '글루텐'] },
+  { id: 'cup_ramen', name: '컵라면(작은 컵)', role: 'dish', serving: '1개', kcal: 300, protein: 6, carbs: 43, fat: 11, meals: ['snack'], tags: ['밀', '글루텐'] },
+  { id: 'tteokbokki', name: '떡볶이', role: 'dish', serving: '1인분(300g)', kcal: 480, protein: 9, carbs: 98, fat: 5, meals: ['lunch', 'dinner', 'snack'], tags: ['밀', '떡'] },
+  { id: 'fried_chicken', name: '후라이드 치킨', role: 'dish', serving: '3조각', kcal: 600, protein: 40, carbs: 25, fat: 38, meals: ['lunch', 'dinner'], tags: ['닭', '육류', '밀'] },
+  { id: 'bibimbap', name: '비빔밥', role: 'dish', serving: '1그릇', kcal: 590, protein: 20, carbs: 95, fat: 14, meals: ['lunch', 'dinner'], tags: ['쌀', '달걀'] },
+  { id: 'jjajangmyeon', name: '짜장면', role: 'dish', serving: '1그릇', kcal: 800, protein: 22, carbs: 125, fat: 23, meals: ['lunch', 'dinner'], tags: ['밀', '글루텐', '돼지'] },
+  { id: 'donkatsu', name: '돈가스', role: 'dish', serving: '1인분(밥 포함)', kcal: 850, protein: 32, carbs: 100, fat: 35, meals: ['lunch', 'dinner'], tags: ['돼지', '밀'] },
+  { id: 'hamburger', name: '햄버거', role: 'dish', serving: '1개', kcal: 520, protein: 25, carbs: 45, fat: 27, meals: ['lunch', 'dinner', 'snack'], tags: ['밀', '소', '유제품'] },
+  { id: 'pizza', name: '피자', role: 'dish', serving: '2조각', kcal: 560, protein: 24, carbs: 64, fat: 22, meals: ['lunch', 'dinner', 'snack'], tags: ['밀', '유제품'] },
+  { id: 'sandwich', name: '편의점 샌드위치', role: 'dish', serving: '1개', kcal: 350, protein: 14, carbs: 38, fat: 15, meals: ['breakfast', 'lunch', 'snack'], tags: ['밀', '달걀'] },
+  { id: 'chocolate_milk', name: '초코우유', role: 'dish', serving: '200ml', kcal: 160, protein: 5, carbs: 24, fat: 5, meals: ['snack'], tags: ['유제품', '우유'] },
+  { id: 'cookie_snack', name: '과자', role: 'dish', serving: '1봉지(60g)', kcal: 310, protein: 4, carbs: 38, fat: 16, meals: ['snack'], tags: ['밀'] },
+  { id: 'ice_cream', name: '아이스크림', role: 'dish', serving: '1개', kcal: 200, protein: 3, carbs: 24, fat: 10, meals: ['snack'], tags: ['유제품', '우유'] },
+  { id: 'soda', name: '탄산음료', role: 'dish', serving: '1캔(355ml)', kcal: 150, protein: 0, carbs: 39, fat: 0, meals: ['snack'], tags: [] },
 ];
 
 export function isAvoided(food: Food, avoid: string[]): boolean {

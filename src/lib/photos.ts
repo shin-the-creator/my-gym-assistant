@@ -15,7 +15,8 @@ function normalizeMime(mime?: string | null): PickedPhoto['mimeType'] {
   return 'image/jpeg';
 }
 
-export async function pickPhoto(source: 'camera' | 'library'): Promise<PickedPhoto | null> {
+/** keep=false면 앱 폴더에 복사하지 않는다(분석만 하고 버리는 음식 사진) */
+export async function pickPhoto(source: 'camera' | 'library', keep = true): Promise<PickedPhoto | null> {
   if (source === 'camera') {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) throw new Error('카메라 권한이 필요해요. 설정에서 허용해 주세요.');
@@ -24,7 +25,7 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<PickedPho
   const result = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
   if (result.canceled || result.assets.length === 0) return null;
   const asset = result.assets[0];
-  return { uri: await persist(asset.uri), base64: asset.base64 ?? null, mimeType: normalizeMime(asset.mimeType) };
+  return { uri: keep ? await persist(asset.uri) : asset.uri, base64: asset.base64 ?? null, mimeType: normalizeMime(asset.mimeType) };
 }
 
 async function persist(uri: string): Promise<string> {

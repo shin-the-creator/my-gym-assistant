@@ -2,6 +2,7 @@
 
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Button, Card, Empty, Grid, Icon, Progress, Row, Screen, T, Title } from '@/components/ui';
@@ -17,11 +18,19 @@ export default function PlacesScreen() {
   const c = useTheme();
   const places = useStore((s) => s.places);
   const profile = useStore((s) => s.profile);
+  const movePlace = useStore((s) => s.movePlace);
   const { program } = useProgram();
+  // 순서 바꾸기 모드: 카드마다 위·아래 버튼이 나온다. 이 순서는 운동 탭의 장소 목록에도 그대로 쓰인다
+  const [reorder, setReorder] = useState(false);
 
   return (
     <Screen>
-      <Title subtitle="장소마다 기구를 등록해 두면 그 곳에 맞춘 루틴을 짜 드려요" right={<Button small title="추가" icon="add" onPress={() => router.push('/place/new')} />}>
+      <Title subtitle="장소마다 기구를 등록해 두면 그 곳에 맞춘 루틴을 짜 드려요" right={
+          <Row gap={6}>
+            {places.length > 1 ? <Button small kind={reorder ? 'primary' : 'secondary'} title={reorder ? '완료' : '순서'} icon={reorder ? 'checkmark' : 'swap-vertical'} onPress={() => setReorder(!reorder)} /> : null}
+            {!reorder ? <Button small title="추가" icon="add" onPress={() => router.push('/place/new')} /> : null}
+          </Row>
+        }>
         운동 장소
       </Title>
 
@@ -36,10 +45,10 @@ export default function PlacesScreen() {
         </Card>
       ) : (
         <Grid>
-          {places.map((p) => {
+          {places.map((p, index) => {
             const coverage = profile ? placeCoverage(program, p, profile.experience) : 0;
             return (
-              <Pressable key={p.id} onPress={() => router.push({ pathname: '/place/[id]', params: { id: p.id } })}>
+              <Pressable key={p.id} disabled={reorder} onPress={() => router.push({ pathname: '/place/[id]', params: { id: p.id } })}>
                 {({ pressed }) => (
                   <Card style={{ opacity: pressed ? 0.8 : 1, gap: Spacing.md }}>
                     <Row>
@@ -56,14 +65,21 @@ export default function PlacesScreen() {
                           {PLACE_KINDS[p.kind].label} · 기구 {p.equipment.length}개
                         </T>
                       </View>
-                      <Icon name="chevron-forward" />
+                      {reorder ? (
+                        <Row gap={6}>
+                          <Button small kind="secondary" title="" icon="arrow-up" onPress={() => movePlace(p.id, -1)} disabled={index === 0} />
+                          <Button small kind="secondary" title="" icon="arrow-down" onPress={() => movePlace(p.id, 1)} disabled={index === places.length - 1} />
+                        </Row>
+                      ) : (
+                        <Icon name="chevron-forward" />
+                      )}
                     </Row>
                     <T kind="secondary" numberOfLines={2}>
-                      {p.equipment.length ? p.equipment.map((e) => equipmentName(e.equipmentId)).join(', ') : '아직 기구가 없어요 — 눌러서 추가하세요'}
+                      {p.equipment.length ? p.equipment.map((e) => equipmentName(e.equipmentId)).join(', ') : '아직 기구가 없어요 — 지금은 맨몸 운동으로 짜요. 눌러서 기구를 추가하세요'}
                     </T>
                     {profile ? (
                       <View style={{ gap: 4 }}>
-                        <T kind="small">내 루틴 소화율 {Math.round(coverage * 100)}%</T>
+                        <T kind="small">{p.equipment.length ? '' : '맨몸 기준 '}내 루틴 소화율 {Math.round(coverage * 100)}%</T>
                         <Progress value={coverage} color={coverage > 0.8 ? c.good : coverage > 0.5 ? c.primary : c.warn} />
                       </View>
                     ) : null}

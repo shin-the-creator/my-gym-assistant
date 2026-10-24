@@ -2,6 +2,7 @@ import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import { useToday } from '@/hooks/use-plan';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,6 +37,7 @@ export default function RootLayout() {
   // 앱 전체를 매트 다크 테마로 고정한다
   const base = DarkTheme;
   return (
+    <KeyboardProvider>
     <ThemeProvider value={{ ...base, colors: { ...base.colors, primary: c.primary, background: c.background, card: c.card, text: c.text, border: c.border } }}>
       <StatusBar style="light" />
       <ReminderSync />
@@ -55,7 +57,11 @@ export default function RootLayout() {
         <Stack.Screen name="session" options={{ title: '운동 기록', gestureEnabled: false }} />
         <Stack.Screen name="settings" options={{ title: '설정' }} />
         <Stack.Screen name="coach" options={{ title: 'AI 코치' }} />
+        <Stack.Screen name="food" options={{ title: '음식 기록', presentation: 'modal' }} />
+        <Stack.Screen name="school" options={{ title: '학교 급식 연결' }} />
+        <Stack.Screen name="feedback" options={{ title: '의견 보내기' }} />
       </Stack>
     </ThemeProvider>
+    </KeyboardProvider>
   );
 }

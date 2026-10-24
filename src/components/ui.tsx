@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type ComponentProps, type ReactNode, Children, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MaxContentWidth, Radius, Spacing } from '@/constants/theme';
@@ -42,9 +44,16 @@ export function Screen({
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
-          {inner}
-        </ScrollView>
+        // 입력칸을 누르면 키보드 위로 올라오도록 스크롤한다(웹은 브라우저가 처리)
+        Platform.OS === 'web' ? (
+          <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
+            {inner}
+          </ScrollView>
+        ) : (
+          <KeyboardAwareScrollView bottomOffset={24} contentContainerStyle={{ paddingBottom: Spacing.xxl }} keyboardShouldPersistTaps="handled">
+            {inner}
+          </KeyboardAwareScrollView>
+        )
       ) : (
         inner
       )}
@@ -220,7 +229,7 @@ export function ChipRow({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm }}>{children}</View>;
 }
 
-export function Field({ label, hint, suffix, ...props }: TextInputProps & { label: string; hint?: string; suffix?: string }) {
+export function Field({ label, hint, suffix, style, ...props }: TextInputProps & { label: string; hint?: string; suffix?: string }) {
   const c = useTheme();
   return (
     <View style={{ gap: 6, flex: 1, minWidth: 120 }}>
@@ -229,8 +238,8 @@ export function Field({ label, hint, suffix, ...props }: TextInputProps & { labe
         <TextInput
           placeholderTextColor={c.faint}
           selectionColor={c.text}
-          style={{ flex: 1, minWidth: 0, width: '100%', color: c.text, fontSize: 16, paddingVertical: 12 }}
           {...props}
+          style={[{ flex: 1, minWidth: 0, width: '100%', color: c.text, fontSize: 16, paddingVertical: 12 }, style]}
         />
         {suffix ? <T kind="secondary">{suffix}</T> : null}
       </View>

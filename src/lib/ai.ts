@@ -6,7 +6,17 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { CATALOG, type ModelInfo, RECOGNITION_JSON_SCHEMA, type Recognition, parseRecognition, rankModels } from './ai-utils';
+import {
+  CATALOG,
+  FOOD_JSON_SCHEMA,
+  type FoodAnalysis,
+  type ModelInfo,
+  RECOGNITION_JSON_SCHEMA,
+  type Recognition,
+  parseFoodAnalysis,
+  parseRecognition,
+  rankModels,
+} from './ai-utils';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
 const KEY_NAME = 'gemini_api_key';
@@ -45,7 +55,7 @@ export async function clearApiKey(): Promise<void> {
 
 export class AiError extends Error {}
 
-export type { Recognition };
+export type { FoodAnalysis, Recognition };
 
 class HttpError extends Error {
   constructor(
@@ -164,4 +174,19 @@ export async function askCoach(question: string, context: string): Promise<strin
     '통증이나 질환이 의심되면 운동을 멈추고 전문의 상담을 권하세요. 모바일 화면에서 읽기 좋게 짧은 문단과 목록으로 답하고, 마크다운 기호(#, **)는 쓰지 마세요.\n\n' +
     `사용자 정보:\n${context}`;
   return generate(system, [{ text: question }]);
+}
+
+/** 음식 사진을 보고 음식별 양·칼로리·탄단지를 추정한다 */
+export async function analyzeFood(base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg'): Promise<FoodAnalysis> {
+  const system =
+    '당신은 한국 음식에 밝은 영양사입니다. 사진에 보이는 음식을 하나씩 나누어 한국어 이름, 보이는 양, ' +
+    '그 양에 해당하는 칼로리(kcal)와 단백질·탄수화물·지방(g)을 식품의약품안전처 식품영양성분 기준으로 추정하세요. ' +
+    '급식판이면 칸마다 따로 적으세요. 음식이 아니면 foods를 빈 배열로 두세요. ' +
+    '반드시 {"foods":[{"name","amount","kcal","protein","carbs","fat"}],"note":""} 형태의 JSON만 답하세요.';
+  const text = await generate(system, [{ inlineData: { mimeType: mediaType, data: base64 } }, { text: '이 음식의 열량과 영양소를 알려 주세요.' }], FOOD_JSON_SCHEMA);
+  try {
+    return parseFoodAnalysis(text);
+  } catch {
+    throw new AiError('AI 응답을 해석하지 못했어요. 다시 시도해 주세요.');
+  }
 }

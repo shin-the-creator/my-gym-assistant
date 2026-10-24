@@ -90,3 +90,39 @@ export interface Settings {
   sleepReminder: boolean;
   mealReminders: boolean;
 }
+
+export type MealSlotKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+/** 실제로 먹은 음식 한 건 */
+export interface FoodEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  meal: MealSlotKey;
+  name: string;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  /** 어떻게 기록했는지: 사진 AI 분석, 학교 급식, 음식 목록, 직접 입력 */
+  source: 'photo' | 'school' | 'db' | 'manual';
+  createdAt: number;
+}
+
+/** 나이스(NEIS)에서 찾은 학교 */
+export interface School {
+  name: string;
+  officeCode: string; // ATPT_OFCDC_SC_CODE
+  schoolCode: string; // SD_SCHUL_CODE
+  address?: string;
+}
+
+/** 학교 급식 한 끼(조식·중식·석식) */
+export interface SchoolMeal {
+  code: '1' | '2' | '3';
+  name: string;
+  dishes: string[];
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}

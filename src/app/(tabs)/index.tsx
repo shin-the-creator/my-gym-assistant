@@ -215,10 +215,11 @@ export default function TodayScreen() {
           <ListRow
             marker="restaurant-outline"
             title="오늘 식단"
-            subtitle={`${today.targets.calories.toLocaleString('ko-KR')} kcal · 단백질 ${today.targets.proteinG}g`}
+            subtitle={`목표 ${today.targets.calories.toLocaleString('ko-KR')} kcal · 급식·사진으로 기록`}
             onPress={() => router.push('/diet')}
           />
           <ListRow marker="chatbubble-outline" title="AI 코치에게 묻기" subtitle="자세 · 통증 · 정체기 · 대체 음식" onPress={() => router.push('/coach')} />
+          <ListRow marker="mail-outline" title="의견 보내기" subtitle="불편한 점·원하는 기능 알려 주기" onPress={() => router.push('/feedback')} />
         </ListCard>
       </View>
     </View>

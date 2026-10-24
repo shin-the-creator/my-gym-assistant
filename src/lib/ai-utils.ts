@@ -108,3 +108,55 @@ export function parseRecognition(text: string): Recognition {
     items: parsed.items.filter((i) => known.has(i.equipmentId) && !seen.has(i.equipmentId) && seen.add(i.equipmentId)),
   };
 }
+
+const FoodSchema = z.object({
+  foods: z
+    .array(
+      z.object({
+        name: z.string(),
+        amount: z.string().catch(''),
+        kcal: z.number().catch(0),
+        protein: z.number().catch(0),
+        carbs: z.number().catch(0),
+        fat: z.number().catch(0),
+      }),
+    )
+    .catch([]),
+  note: z.string().catch(''),
+});
+
+export type FoodAnalysis = z.infer<typeof FoodSchema>;
+
+export const FOOD_JSON_SCHEMA = {
+  type: 'object',
+  properties: {
+    foods: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: '한국어 음식 이름' },
+          amount: { type: 'string', description: '사진에서 추정한 양(예: 1공기, 200g)' },
+          kcal: { type: 'number' },
+          protein: { type: 'number', description: '단백질(g)' },
+          carbs: { type: 'number', description: '탄수화물(g)' },
+          fat: { type: 'number', description: '지방(g)' },
+        },
+        required: ['name', 'amount', 'kcal', 'protein', 'carbs', 'fat'],
+      },
+    },
+    note: { type: 'string', description: '한국어 한 문장: 추정 근거나 주의점' },
+  },
+  required: ['foods', 'note'],
+};
+
+export function parseFoodAnalysis(text: string): FoodAnalysis {
+  const parsed = FoodSchema.parse(extractJson(text));
+  const clean = (n: number) => (Number.isFinite(n) && n > 0 ? Math.round(n * 10) / 10 : 0);
+  return {
+    note: parsed.note,
+    foods: parsed.foods
+      .filter((f) => f.name.trim())
+      .map((f) => ({ ...f, name: f.name.trim(), kcal: Math.round(clean(f.kcal)), protein: clean(f.protein), carbs: clean(f.carbs), fat: clean(f.fat) })),
+  };
+}

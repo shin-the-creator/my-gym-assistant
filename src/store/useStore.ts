@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import { dateKey } from '@/lib/time';
-import type { ExerciseLog, Place, PlaceEquipment, Profile, Settings, WeightEntry, WorkoutLog } from '@/types/models';
+import type { ExerciseLog, FoodEntry, Place, PlaceEquipment, Profile, School, SchoolMeal, Settings, WeightEntry, WorkoutLog } from '@/types/models';
 
 export function newId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -20,8 +20,12 @@ interface State {
   weights: WeightEntry[];
   /** 날짜별 마신 물(ml) */
   water: Record<string, number>;
-  /** 날짜별 식단 "다시 짜기" 횟수 */
-  mealShuffle: Record<string, number>;
+  /** 먹은 음식 기록 */
+  foodLog: FoodEntry[];
+  /** 급식을 불러올 학교 */
+  school: School | null;
+  /** 날짜별 급식(나이스에서 받아 둔 것) */
+  schoolMeals: Record<string, SchoolMeal[]>;
   settings: Settings;
   lastPlaceId: string | null;
 
@@ -32,6 +36,8 @@ interface State {
   addPlace: (place: Omit<Place, 'id' | 'createdAt'>) => string;
   updatePlace: (id: string, patch: Partial<Omit<Place, 'id'>>) => void;
   removePlace: (id: string) => void;
+  /** 장소 순서 바꾸기: delta -1이면 위로, +1이면 아래로 */
+  movePlace: (id: string, delta: number) => void;
   setPlaceEquipment: (placeId: string, items: PlaceEquipment[]) => void;
   upsertPlaceEquipment: (placeId: string, item: PlaceEquipment) => void;
   removePlaceEquipment: (placeId: string, equipmentId: string) => void;
@@ -43,7 +49,10 @@ interface State {
   removeWorkout: (id: string) => void;
 
   addWater: (ml: number, date?: string) => void;
-  shuffleMeals: (date?: string) => void;
+  addFood: (entries: Omit<FoodEntry, 'id' | 'createdAt'>[]) => void;
+  removeFood: (id: string) => void;
+  setSchool: (school: School | null) => void;
+  cacheSchoolMeals: (date: string, meals: SchoolMeal[]) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetAll: () => void;
 }
@@ -55,7 +64,9 @@ const initial = {
   activeWorkout: null,
   weights: [],
   water: {},
-  mealShuffle: {},
+  foodLog: [],
+  school: null,
+  schoolMeals: {},
   settings: { apiKeyConfigured: false, waterReminders: false, sleepReminder: false, mealReminders: false },
   lastPlaceId: null,
 };
@@ -87,6 +98,15 @@ export const useStore = create<State>()(
         return id;
       },
       updatePlace: (id, patch) => set((s) => ({ places: s.places.map((p) => (p.id === id ? { ...p, ...patch } : p)) })),
+      movePlace: (id, delta) =>
+        set((s) => {
+          const i = s.places.findIndex((p) => p.id === id);
+          const j = i + delta;
+          if (i < 0 || j < 0 || j >= s.places.length) return {};
+          const places = [...s.places];
+          [places[i], places[j]] = [places[j], places[i]];
+          return { places };
+        }),
       removePlace: (id) =>
         set((s) => ({ places: s.places.filter((p) => p.id !== id), lastPlaceId: s.lastPlaceId === id ? null : s.lastPlaceId })),
       setPlaceEquipment: (placeId, items) => get().updatePlace(placeId, { equipment: items }),
@@ -120,7 +140,17 @@ export const useStore = create<State>()(
       removeWorkout: (id) => set((s) => ({ workouts: s.workouts.filter((w) => w.id !== id) })),
 
       addWater: (ml, date = dateKey()) => set((s) => ({ water: { ...s.water, [date]: Math.max(0, (s.water[date] ?? 0) + ml) } })),
-      shuffleMeals: (date = dateKey()) => set((s) => ({ mealShuffle: { ...s.mealShuffle, [date]: (s.mealShuffle[date] ?? 0) + 1 } })),
+      addFood: (entries) =>
+        set((s) => ({ foodLog: [...s.foodLog, ...entries.map((e) => ({ ...e, id: newId(), createdAt: Date.now() }))] })),
+      removeFood: (id) => set((s) => ({ foodLog: s.foodLog.filter((f) => f.id !== id) })),
+      setSchool: (school) => set({ school, schoolMeals: {} }),
+      cacheSchoolMeals: (date, meals) =>
+        set((s) => {
+          // 최근 60일치만 보관해 저장 공간을 아낀다
+          const keys = Object.keys(s.schoolMeals).sort().slice(-60);
+          const kept = Object.fromEntries(keys.map((k) => [k, s.schoolMeals[k]]));
+          return { schoolMeals: { ...kept, [date]: meals } };
+        }),
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       resetAll: () => set({ ...initial }),
     }),

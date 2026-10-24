@@ -2,6 +2,7 @@
 
 import { FOODS, type Food, type FoodRole, type MealSlot, isAvoided } from '@/data/foods';
 import type { MacroTargets } from './body';
+import type { FoodEntry, SchoolMeal } from '@/types/models';
 
 export interface MealItem {
   food: Food;
@@ -26,7 +27,7 @@ export const MEAL_TITLES: Record<MealSlot, string> = {
   snack: '간식',
 };
 
-const SHARE: Record<MealSlot, number> = { breakfast: 0.25, lunch: 0.35, dinner: 0.3, snack: 0.1 };
+export const SHARE: Record<MealSlot, number> = { breakfast: 0.25, lunch: 0.35, dinner: 0.3, snack: 0.1 };
 
 /** 같은 시드면 같은 식단 — 날짜별로 고정되고 "다시 짜기"로 바꿀 수 있다 */
 export function seededRandom(seed: number): () => number {
@@ -70,7 +71,7 @@ function totals(items: MealItem[]) {
   );
 }
 
-function buildMeal(slot: MealSlot, target: MacroTargets, foods: Food[], rnd: () => number, usedToday: Set<string>): Meal {
+export function buildMeal(slot: MealSlot, target: MacroTargets, foods: Food[], rnd: () => number, usedToday: Set<string>): Meal {
   const of = (role: FoodRole) => foods.filter((f) => f.role === role && f.meals.includes(slot));
   const items: MealItem[] = [];
 
@@ -153,4 +154,92 @@ export function planTotals(meals: Meal[]) {
 export function formatQty(item: MealItem): string {
   if (item.qty === 1) return item.food.serving;
   return `${item.food.serving} × ${item.qty}`;
+}
+
+export interface Totals {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export function sumEntries(entries: Pick<FoodEntry, 'kcal' | 'protein' | 'carbs' | 'fat'>[]): Totals {
+  return entries.reduce(
+    (t, e) => ({ kcal: t.kcal + e.kcal, protein: t.protein + e.protein, carbs: t.carbs + e.carbs, fat: t.fat + e.fat }),
+    { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+  );
+}
+
+const SLOT_OF_SCHOOL = { '1': 'breakfast', '2': 'lunch', '3': 'dinner' } as const;
+
+export type Recommendation =
+  | { slot: MealSlot; kind: 'school'; school: SchoolMeal }
+  | { slot: MealSlot; kind: 'plan'; meal: Meal };
+
+/**
+ * 오늘 아직 기록하지 않은 끼니에 무엇을 먹으면 좋을지 정한다.
+ * 1) 기록한 음식의 영양을 목표에서 빼고
+ * 2) 남은 끼니에 급식이 있으면 급식을 그 끼니로 잡고 그만큼 또 뺀 뒤
+ * 3) 나머지 끼니에 남은 영양을 비율대로 나눠 음식을 고른다(날짜별로 고정된 선택)
+ */
+export function recommendRemaining({
+  targets,
+  entries,
+  schoolMeals,
+  avoid,
+  seed,
+}: {
+  targets: MacroTargets;
+  entries: FoodEntry[];
+  schoolMeals: SchoolMeal[];
+  avoid: string[];
+  seed: number;
+}): { remaining: Totals; recommendations: Recommendation[] } {
+  const eaten = sumEntries(entries);
+  const logged = new Set(entries.map((e) => e.meal));
+  const order: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const open = order.filter((s) => !logged.has(s));
+
+  const recommendations: Recommendation[] = [];
+  const schoolPlanned = schoolMeals.filter((m) => open.includes(SLOT_OF_SCHOOL[m.code]));
+  for (const m of schoolPlanned) recommendations.push({ slot: SLOT_OF_SCHOOL[m.code], kind: 'school', school: m });
+  const afterSchool = sumEntries(schoolPlanned);
+
+  const left = (target: number, a: number, b: number) => Math.max(0, target - a - b);
+  const remaining: Totals = {
+    kcal: left(targets.calories, eaten.kcal, afterSchool.kcal),
+    protein: left(targets.proteinG, eaten.protein, afterSchool.protein),
+    carbs: left(targets.carbsG, eaten.carbs, afterSchool.carbs),
+    fat: left(targets.fatG, eaten.fat, afterSchool.fat),
+  };
+
+  const planSlots = open.filter((s) => !schoolPlanned.some((m) => SLOT_OF_SCHOOL[m.code] === s));
+  const shareSum = planSlots.reduce((sum, s) => sum + SHARE[s], 0);
+  if (planSlots.length > 0 && remaining.kcal >= 120) {
+    const foods = FOODS.filter((f) => !isAvoided(f, avoid));
+    const rnd = seededRandom(seed);
+    const used = new Set<string>();
+    for (const slot of planSlots) {
+      const r = SHARE[slot] / shareSum;
+      const meal = buildMeal(
+        slot,
+        { calories: remaining.kcal * r, proteinG: remaining.protein * r, carbsG: remaining.carbs * r, fatG: remaining.fat * r },
+        foods,
+        rnd,
+        used,
+      );
+      if (meal.items.length) recommendations.push({ slot, kind: 'plan', meal });
+    }
+  }
+  recommendations.sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot));
+  return { remaining, recommendations };
+}
+
+/** 지금 시각 기준으로 기본 끼니 고르기 */
+export function slotForTime(date: Date = new Date()): MealSlot {
+  const h = date.getHours();
+  if (h < 10) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
 }
