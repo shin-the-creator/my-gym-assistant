@@ -8,7 +8,7 @@ import { Button, Card, Empty, Field, Grid, Notice, Row, Screen, Stat, StatRow, T
 import { Radius, Spacing } from '@/constants/theme';
 import { useToday } from '@/hooks/use-plan';
 import { useTheme } from '@/hooks/use-theme';
-import { ACTIVITY_LABELS, ageFrom, bmi, bmiCategory, bmr, bodyInsights, healthyWeightRange, navyBodyFat, tdee } from '@/lib/body';
+import { ACTIVITY_LABELS, ageFrom, bmi, bmiCategory, bmr, bodyInsights, healthyWeightRange, isTeen, navyBodyFat, tdee } from '@/lib/body';
 import { bedtimeOptions, recommendedSleepHours } from '@/lib/schedule';
 import { dateKey } from '@/lib/time';
 import { formatTimeKo } from '@/lib/workout-slots';
@@ -59,6 +59,7 @@ export default function BodyScreen() {
   }
 
   const age = ageFrom(profile.birthYear);
+  const teen = isTeen(profile);
   const b = bmi(profile.weightKg, profile.heightCm);
   const cat = bmiCategory(b);
   const fat = profile.bodyFatPct ?? navyBodyFat(profile);
@@ -82,9 +83,13 @@ export default function BodyScreen() {
       </Title>
 
       <StatRow>
-        <Stat label="체중" value={String(profile.weightKg)} unit="kg" sub={`건강 범위 ${lo}~${hi}kg`} />
-        <Stat label="BMI" value={b.toFixed(1)} sub={cat.label} tone={cat.level === 'normal' ? 'good' : cat.level === 'low' ? 'info' : 'warn'} />
-        <Stat label="체지방률" value={fat !== undefined ? fat.toFixed(1) : '—'} unit={fat !== undefined ? '%' : undefined} sub={profile.bodyFatPct ? '측정값' : fat !== undefined ? '둘레로 추정' : '둘레를 입력하면 추정'} />
+        <Stat label="체중" value={String(profile.weightKg)} unit="kg" sub={teen ? '성장기 · 숫자보다 컨디션' : `건강 범위 ${lo}~${hi}kg`} />
+        {teen ? (
+          <Stat label="BMI" value={b.toFixed(1)} sub="청소년은 성장도표로 판단" />
+        ) : (
+          <Stat label="BMI" value={b.toFixed(1)} sub={cat.label} tone={cat.level === 'normal' ? 'good' : cat.level === 'low' ? 'info' : 'warn'} />
+        )}
+        <Stat label="체지방률" value={fat !== undefined ? fat.toFixed(1) : '—'} unit={fat !== undefined ? '%' : undefined} sub={profile.bodyFatPct ? '측정값' : teen ? '청소년은 참고만 하세요' : fat !== undefined ? '둘레로 추정' : '둘레를 입력하면 추정'} />
         <Stat label="기초대사량" value={Math.round(bmr(profile)).toLocaleString()} unit="kcal" sub="가만히 있어도 쓰는 에너지" />
         <Stat label="하루 소비" value={Math.round(tdee(profile)).toLocaleString()} unit="kcal" sub="활동량 포함" />
         <Stat label="물 목표" value={(today.waterTarget / 1000).toFixed(1)} unit="L" sub={today.workoutDay ? '운동일 기준' : '휴식일 기준'} />

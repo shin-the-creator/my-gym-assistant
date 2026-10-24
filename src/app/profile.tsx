@@ -135,6 +135,9 @@ export default function ProfileScreen() {
                 <Chip key={g} label={GOAL_LABELS[g]} selected={goal === g} onPress={() => setGoal(g)} />
               ))}
             </ChipRow>
+            {birthYear && new Date().getFullYear() - birthYear < 19 ? (
+              <T kind="small">성장기에는 체중을 줄이기보다 근력·체력을 키우는 데 집중해요. 감량을 골라도 칼로리는 줄이지 않고 골고루 먹도록 짜 드려요.</T>
+            ) : null}
             <T kind="label">운동 경력</T>
             <ChipRow>
               {(Object.keys(EXPERIENCE_LABELS) as Experience[]).map((e) => (

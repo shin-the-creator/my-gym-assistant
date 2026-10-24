@@ -83,8 +83,19 @@ export interface MacroTargets {
   carbsG: number;
 }
 
+/** 성장기(만 18세 이하, 출생연도 기준 19세 미만) — 식단·코칭에 청소년 기준을 쓴다 */
+export function isTeen(p: Pick<Profile, 'birthYear'>, now?: Date): boolean {
+  return ageFrom(p.birthYear, now) < 19;
+}
+
 export function targetCalories(p: Profile, now?: Date): number {
   const t = tdee(p, now);
+  if (isTeen(p, now)) {
+    // 성장기에는 칼로리를 줄이지 않는다(감량 목표여도 유지량). 너무 적게 먹지 않도록 최소량을 둔다
+    const teenAdjust: Record<Goal, number> = { fat_loss: 0, maintain: 0, muscle_gain: 0.1, strength: 0.05 };
+    const floor = p.sex === 'male' ? 1800 : 1600;
+    return Math.round(Math.max(t * (1 + teenAdjust[p.goal]), floor) / 10) * 10;
+  }
   const adjust: Record<Goal, number> = {
     fat_loss: -0.18,
     maintain: 0,
@@ -104,7 +115,9 @@ export function macroTargets(p: Profile, now?: Date): MacroTargets {
     muscle_gain: 1.8,
     strength: 1.8,
   };
-  const proteinG = Math.round(p.weightKg * proteinPerKg[p.goal]);
+  // 성장기는 고기·생선·달걀·두부 같은 자연식으로 채울 수 있는 양(체중 1kg당 1.2~1.4g)
+  const perKg = isTeen(p, now) ? (p.goal === 'muscle_gain' || p.goal === 'strength' ? 1.4 : 1.2) : proteinPerKg[p.goal];
+  const proteinG = Math.round(p.weightKg * perKg);
   const fatG = Math.round(Math.max(p.weightKg * 0.8, (calories * 0.25) / 9));
   const carbsG = Math.max(0, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
   return { calories, proteinG, fatG, carbsG };
@@ -159,7 +172,31 @@ export interface Insight {
 }
 
 /** 수치를 사람이 읽을 수 있는 조언으로 바꾼다 */
+/** 성장기용 분석: 성인 BMI·체지방 공식으로 판단하지 않고, 감량 조언을 하지 않는다 */
+function teenInsights(p: Profile, weights: WeightEntry[]): Insight[] {
+  const out: Insight[] = [
+    { tone: 'info', text: '청소년은 성인 BMI 기준이 아니라 나이·성별 성장도표로 판단해요. 학교 건강검진이나 소아청소년과에서 확인할 수 있어요.' },
+  ];
+  if (p.waistCm) {
+    const r = waistToHeight(p.waistCm, p.heightCm);
+    out.push(
+      r < 0.5
+        ? { tone: 'good', text: `허리/키 비율 ${r.toFixed(2)} — 건강한 범위예요.` }
+        : { tone: 'info', text: `허리/키 비율 ${r.toFixed(2)} — 굶지 말고, 단 음료·과자를 줄이고 몸을 많이 움직이면 충분해요.` },
+    );
+  }
+  const trend = weeklyWeightTrend(weights);
+  if (trend !== undefined && trend < -0.2) {
+    out.push({ tone: 'warn', text: `최근 체중이 줄고 있어요(주 ${trend.toFixed(2)}kg). 성장기에 체중이 계속 줄면 몸이 힘들 수 있어요. 골고루 든든히 먹고, 계속 줄면 부모님과 병원에서 확인해 보세요.` });
+  } else {
+    out.push({ tone: 'good', text: '성장기에는 키가 크면서 체중이 느는 게 자연스러워요. 체중 숫자보다 운동 기록과 컨디션을 봐 주세요.' });
+  }
+  out.push({ tone: 'info', text: '뼈와 근육이 자라는 시기라 하루 8~10시간 자고, 우유·멸치 같은 칼슘 음식을 챙겨 주세요.' });
+  return out;
+}
+
 export function bodyInsights(p: Profile, weights: WeightEntry[], now?: Date): Insight[] {
+  if (isTeen(p, now)) return teenInsights(p, weights);
   const out: Insight[] = [];
   const b = bmi(p.weightKg, p.heightCm);
   const cat = bmiCategory(b);

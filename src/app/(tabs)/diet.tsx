@@ -11,7 +11,7 @@ import { Spacing } from '@/constants/theme';
 import { useToday } from '@/hooks/use-plan';
 import { useSchoolMeals } from '@/hooks/use-school-meals';
 import { useLayout } from '@/hooks/use-theme';
-import { GOAL_LABELS } from '@/lib/body';
+import { GOAL_LABELS, isTeen } from '@/lib/body';
 import { MEAL_TITLES, formatQty, recommendRemaining, seedFrom, sumEntries } from '@/lib/diet';
 import { useStore } from '@/store/useStore';
 
@@ -28,7 +28,7 @@ export default function DietScreen() {
   const entries = useMemo(() => foodLog.filter((f) => f.date === date), [foodLog, date]);
   const plan = useMemo(() => {
     if (!profile || !today) return null;
-    return recommendRemaining({ targets: today.targets, entries, schoolMeals, avoid: profile.avoidFoods, seed: seedFrom(date) });
+    return recommendRemaining({ targets: today.targets, entries, schoolMeals, avoid: profile.avoidFoods, seed: seedFrom(date), teen: isTeen(profile) });
   }, [profile, today, entries, schoolMeals, date]);
 
   if (!profile || !today || !plan) {
@@ -68,6 +68,20 @@ export default function DietScreen() {
     <View style={{ gap: Spacing.xl }}>
       <SchoolMealSection date={date} title="오늘 급식" />
       <FoodLogSection date={date} title="오늘 먹은 음식" />
+
+      {isTeen(profile) ? (
+        <View>
+          <SectionLabel>성장기 영양 체크</SectionLabel>
+          <ListCard>
+            <ListRow marker="water-outline" title="칼슘 · 뼈를 튼튼하게" subtitle="우유·요거트·치즈·멸치볶음·두부를 하루 2~3번" />
+            <ListRow marker="fitness-outline" title="철분 · 피를 만드는 재료" subtitle="소고기·돼지 살코기·달걀·시금치나물 — 비타민C(과일)와 같이 먹으면 더 잘 흡수돼요" />
+            <ListRow marker="leaf-outline" title="비타민 · 몸의 컨디션 조절" subtitle="끼니마다 채소 한 접시, 하루 과일 1~2개" />
+          </ListCard>
+          <T kind="small" style={{ marginTop: Spacing.sm, paddingHorizontal: 4 }}>
+            성장기에는 굶거나 칼로리를 줄이지 않고, 보충제 대신 고기·생선·달걀·두부 같은 음식으로 든든하게 먹어요.
+          </T>
+        </View>
+      ) : null}
 
       <View>
         <SectionLabel right={plan.remaining.kcal > 0 ? `남은 ${fmt(plan.remaining.kcal)} kcal` : undefined}>남은 끼니 추천</SectionLabel>

@@ -33,7 +33,8 @@ export const FOODS: Food[] = [
   { id: 'tuna_can', name: '참치캔(기름 뺀 것)', role: 'protein', serving: '100g', kcal: 130, protein: 26, carbs: 0, fat: 2, meals: ALL, tags: ['생선', '해산물', '참치'] },
   { id: 'tofu', name: '두부 부침', role: 'protein', serving: '150g', kcal: 160, protein: 15, carbs: 3, fat: 9, meals: ALL, tags: ['콩', '두부'] },
   { id: 'shrimp', name: '새우 볶음', role: 'protein', serving: '100g', kcal: 110, protein: 22, carbs: 1, fat: 2, meals: ['lunch', 'dinner'], tags: ['해산물', '새우', '갑각류'] },
-  { id: 'protein_shake', name: '프로틴 쉐이크', role: 'protein', serving: '1스쿱', kcal: 120, protein: 24, carbs: 3, fat: 1.5, meals: ['breakfast', 'snack'], tags: ['유제품', '우유'] },
+  { id: 'protein_shake', name: '프로틴 쉐이크', role: 'protein', serving: '1스쿱', kcal: 120, protein: 24, carbs: 3, fat: 1.5, meals: ['breakfast', 'snack'], tags: ['유제품', '우유', '보충제'] },
+  { id: 'anchovy', name: '멸치볶음', role: 'protein', serving: '30g', kcal: 100, protein: 10, carbs: 6, fat: 4, meals: ['lunch', 'dinner'], tags: ['생선', '해산물', '멸치', '칼슘'] },
 
   // 탄수화물
   { id: 'brown_rice', name: '현미밥', role: 'carb', serving: '1공기(210g)', kcal: 310, protein: 6.5, carbs: 67, fat: 2.5, meals: ['lunch', 'dinner'], tags: ['쌀'] },
@@ -63,7 +64,9 @@ export const FOODS: Food[] = [
 
   // 유제품·과일
   { id: 'greek_yogurt', name: '그릭요거트(무가당)', role: 'dairy', serving: '150g', kcal: 130, protein: 15, carbs: 6, fat: 5, meals: ['breakfast', 'snack'], tags: ['유제품', '우유'] },
-  { id: 'milk', name: '저지방 우유', role: 'dairy', serving: '200ml', kcal: 85, protein: 7, carbs: 10, fat: 2, meals: ['breakfast', 'snack'], tags: ['유제품', '우유'] },
+  { id: 'cheese', name: '슬라이스 치즈', role: 'dairy', serving: '1장', kcal: 60, protein: 4, carbs: 1, fat: 4.5, meals: ['breakfast', 'snack'], tags: ['유제품', '치즈', '칼슘'] },
+  { id: 'soy_milk', name: '두유(무가당)', role: 'dairy', serving: '190ml', kcal: 90, protein: 7, carbs: 5, fat: 4.5, meals: ['breakfast', 'snack'], tags: ['콩', '두유'] },
+  { id: 'milk', name: '우유', role: 'dairy', serving: '200ml', kcal: 85, protein: 7, carbs: 10, fat: 2, meals: ['breakfast', 'snack'], tags: ['유제품', '우유'] },
   { id: 'apple', name: '사과', role: 'fruit', serving: '중 1개', kcal: 95, protein: 0.5, carbs: 25, fat: 0.3, meals: ['breakfast', 'snack'], tags: [] },
   { id: 'blueberries', name: '블루베리', role: 'fruit', serving: '100g', kcal: 57, protein: 0.7, carbs: 14, fat: 0.3, meals: ['breakfast', 'snack'], tags: [] },
 

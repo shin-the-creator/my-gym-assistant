@@ -71,12 +71,13 @@ function totals(items: MealItem[]) {
   );
 }
 
-export function buildMeal(slot: MealSlot, target: MacroTargets, foods: Food[], rnd: () => number, usedToday: Set<string>): Meal {
+/** teen: 성장기면 간식 단백질을 우유·치즈·요거트 같은 칼슘 식품에서 고른다 */
+export function buildMeal(slot: MealSlot, target: MacroTargets, foods: Food[], rnd: () => number, usedToday: Set<string>, teen = false): Meal {
   const of = (role: FoodRole) => foods.filter((f) => f.role === role && f.meals.includes(slot));
   const items: MealItem[] = [];
 
   // 1) 채소·과일 → 2) 탄수화물 목표만큼 밥/빵 → 3) 모자란 단백질을 단백질 음식으로 → 4) 남은 지방
-  const protein = pick(slot === 'snack' ? [...of('protein'), ...of('dairy')] : of('protein'), rnd, usedToday);
+  const protein = pick(slot === 'snack' ? (teen ? of('dairy') : [...of('protein'), ...of('dairy')]) : of('protein'), rnd, usedToday);
 
   if (slot === 'snack') {
     const side = pick([...of('fruit'), ...of('carb')], rnd, usedToday);
@@ -129,8 +130,13 @@ export function buildMeal(slot: MealSlot, target: MacroTargets, foods: Food[], r
   };
 }
 
-export function buildMealPlan(targets: MacroTargets, avoid: string[], seed: number): Meal[] {
-  const foods = FOODS.filter((f) => !isAvoided(f, avoid));
+/** 성장기에는 보충제(프로틴 파우더 등)를 추천하지 않는다 */
+function allowedFoods(avoid: string[], teen: boolean): Food[] {
+  return FOODS.filter((f) => !isAvoided(f, avoid) && !(teen && f.tags.includes('보충제')));
+}
+
+export function buildMealPlan(targets: MacroTargets, avoid: string[], seed: number, teen = false): Meal[] {
+  const foods = allowedFoods(avoid, teen);
   const rnd = seededRandom(seed);
   const used = new Set<string>();
   return (['breakfast', 'lunch', 'dinner', 'snack'] as MealSlot[]).map((slot) =>
@@ -140,6 +146,7 @@ export function buildMealPlan(targets: MacroTargets, avoid: string[], seed: numb
       foods,
       rnd,
       used,
+      teen,
     ),
   );
 }
@@ -188,12 +195,14 @@ export function recommendRemaining({
   schoolMeals,
   avoid,
   seed,
+  teen = false,
 }: {
   targets: MacroTargets;
   entries: FoodEntry[];
   schoolMeals: SchoolMeal[];
   avoid: string[];
   seed: number;
+  teen?: boolean;
 }): { remaining: Totals; recommendations: Recommendation[] } {
   const eaten = sumEntries(entries);
   const logged = new Set(entries.map((e) => e.meal));
@@ -216,7 +225,7 @@ export function recommendRemaining({
   const planSlots = open.filter((s) => !schoolPlanned.some((m) => SLOT_OF_SCHOOL[m.code] === s));
   const shareSum = planSlots.reduce((sum, s) => sum + SHARE[s], 0);
   if (planSlots.length > 0 && remaining.kcal >= 120) {
-    const foods = FOODS.filter((f) => !isAvoided(f, avoid));
+    const foods = allowedFoods(avoid, teen);
     const rnd = seededRandom(seed);
     const used = new Set<string>();
     for (const slot of planSlots) {
@@ -227,6 +236,7 @@ export function recommendRemaining({
         foods,
         rnd,
         used,
+        teen,
       );
       if (meal.items.length) recommendations.push({ slot, kind: 'plan', meal });
     }

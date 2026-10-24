@@ -10,10 +10,11 @@ import { Spacing } from '@/constants/theme';
 import { useProgram } from '@/hooks/use-plan';
 import { askCoach } from '@/lib/ai';
 import { ageFrom } from '@/lib/body';
-import { COACH_DOES, COACH_DOESNT, coachRoleInstruction } from '@/lib/coach-role';
+import { COACH_DOES, COACH_DOESNT, TEEN_COACH_DOES, TEEN_COACH_DOESNT, coachRoleInstruction } from '@/lib/coach-role';
 import { coachContext } from '@/lib/context';
 import { askLocalCoach, deviceMemory, isInstalled, localAiSupported, stopLocal } from '@/lib/local-ai';
 import { getLocalModel, recommendModel } from '@/lib/local-models';
+import { EATING_DISORDER_REPLY, hasEatingDisorderRisk } from '@/lib/safety';
 import { useStore } from '@/store/useStore';
 
 const SUGGESTIONS = [
@@ -60,6 +61,10 @@ export default function CoachScreen() {
     }, [engine, model]),
   );
 
+  const teen = profile ? ageFrom(profile.birthYear) < 19 : false;
+  const does = teen ? TEEN_COACH_DOES : COACH_DOES;
+  const doesnt = teen ? TEEN_COACH_DOESNT : COACH_DOESNT;
+
   if (!profile) {
     return (
       <Screen edges={['bottom']}>
@@ -77,6 +82,12 @@ export default function CoachScreen() {
     setQuestion('');
     setBusy(true);
     setHistory((h) => [{ q: text }, ...h]);
+    // 섭식장애 위험 신호는 AI에게 넘기지 않고 바로 상담을 권한다
+    if (hasEatingDisorderRisk(text)) {
+      setFirst({ a: EATING_DISORDER_REPLY, done: true });
+      setBusy(false);
+      return;
+    }
     const context = coachContext(profile, program, places, workouts, weights);
     const role = coachRoleInstruction(ageFrom(profile.birthYear));
     try {
@@ -111,16 +122,20 @@ export default function CoachScreen() {
       <Card title="AI 코치가 도와주는 일" icon="chatbubbles" right={<Button small kind="ghost" title={showRole ? '접기' : '펼치기'} onPress={() => setShowRole(!showRole)} />}>
         {showRole ? (
           <View style={{ gap: 6 }}>
-            {COACH_DOES.map((d) => (
+            {does.map((d) => (
               <T key={d} kind="secondary">{`✓ ${d}`}</T>
             ))}
             <View style={{ height: 6 }} />
-            {COACH_DOESNT.map((d) => (
+            {doesnt.map((d) => (
               <T key={d} kind="secondary">{`✕ ${d}`}</T>
             ))}
           </View>
         ) : (
-          <T kind="secondary">운동·식단·수면·습관을 내 기록에 맞춰 코칭해요. 진단이나 처방은 하지 않아요.</T>
+          <T kind="secondary">
+            {teen
+              ? '성장기 기준으로 코칭해요. 굶거나 보충제를 먹는 대신, 골고루 든든하게 먹고 즐겁게 운동하는 법을 알려 줘요.'
+              : '운동·식단·수면·습관을 내 기록에 맞춰 코칭해요. 진단이나 처방은 하지 않아요.'}
+          </T>
         )}
       </Card>
 

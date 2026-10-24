@@ -174,12 +174,15 @@ export async function askCoach(question: string, context: string, role: string):
 }
 
 /** 음식 사진을 보고 음식별 양·칼로리·탄단지를 추정한다 */
-export async function analyzeFood(base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg'): Promise<FoodAnalysis> {
+export async function analyzeFood(base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg', teen = false): Promise<FoodAnalysis> {
   const system =
     '당신은 한국 음식에 밝은 영양사입니다. 사진에 보이는 음식을 하나씩 나누어 한국어 이름, 보이는 양, ' +
     '그 양에 해당하는 칼로리(kcal)와 단백질·탄수화물·지방(g)을 식품의약품안전처 식품영양성분 기준으로 추정하세요. ' +
     '급식판이면 칸마다 따로 적으세요. 음식이 아니면 foods를 빈 배열로 두세요. ' +
-    '반드시 {"foods":[{"name","amount","kcal","protein","carbs","fat"}],"note":""} 형태의 JSON만 답하세요.';
+    '반드시 {"foods":[{"name","amount","kcal","protein","carbs","fat"}],"note":""} 형태의 JSON만 답하세요.' +
+    (teen
+      ? ' 사용자는 성장기 청소년입니다. note에는 다정한 영양 선생님 말투로 한 문장을 쓰고, 양이 적어 보이면 "성장기에는 더 든든하게 먹어야 힘이 나요!"처럼 더 먹도록 격려하세요. 칼슘·철분·채소가 부족하면 함께 먹을 음식을 하나 권하세요. 칼로리를 줄이라는 말은 하지 마세요.'
+      : '');
   const text = await generate(system, [{ inlineData: { mimeType: mediaType, data: base64 } }, { text: '이 음식의 열량과 영양소를 알려 주세요.' }], FOOD_JSON_SCHEMA);
   try {
     return parseFoodAnalysis(text);

@@ -12,6 +12,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { FOODS } from '@/data/foods';
 import { useTheme } from '@/hooks/use-theme';
 import { analyzeFood } from '@/lib/ai';
+import { isTeen } from '@/lib/body';
 import { MEAL_TITLES, slotForTime, sumEntries } from '@/lib/diet';
 import { pickPhoto } from '@/lib/photos';
 import { dateKey } from '@/lib/time';
@@ -33,6 +34,8 @@ export default function FoodScreen() {
   const params = useLocalSearchParams<{ date?: string; mode?: Mode }>();
   const [date, setDate] = useState(params.date || dateKey());
   const addFood = useStore((s) => s.addFood);
+  const profile = useStore((s) => s.profile);
+  const teen = profile ? isTeen(profile) : false;
 
   const [mode, setMode] = useState<Mode>(params.mode ?? 'photo');
   const [meal, setMeal] = useState<MealSlotKey>(date === dateKey() ? slotForTime() : 'lunch');
@@ -76,7 +79,7 @@ export default function FoodScreen() {
       setPhoto(picked.uri);
       if (!picked.base64) return;
       setBusy(true);
-      const result = await analyzeFood(picked.base64, picked.mimeType);
+      const result = await analyzeFood(picked.base64, picked.mimeType, teen);
       if (result.foods.length === 0) setError('사진에서 음식을 찾지 못했어요. 음식이 잘 보이게 다시 찍거나 검색으로 기록해 주세요.');
       setNote(result.note || null);
       add(result.foods.map((f) => ({ name: f.name, amount: f.amount, kcal: f.kcal, protein: f.protein, carbs: f.carbs, fat: f.fat, source: 'photo' as const })));
@@ -199,6 +202,9 @@ export default function FoodScreen() {
         </Card>
       ) : null}
 
+      {teen && chosen.length > 0 && meal !== 'snack' && total.kcal < 400 ? (
+        <Notice icon="heart-outline">성장기에는 더 든든하게 먹어야 힘이 나요! 밥이나 단백질 반찬을 조금 더 곁들여 보세요.</Notice>
+      ) : null}
       {pending.length > 0 ? (
         <View style={{ gap: Spacing.sm }}>
           <SectionLabel right="양을 고르세요">기록할 음식</SectionLabel>
