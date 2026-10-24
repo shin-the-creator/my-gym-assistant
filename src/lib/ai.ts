@@ -14,10 +14,21 @@ const KEY_NAME = 'gemini_api_key';
 // 모델 목록을 못 불러올 때 시도할 기본 후보(앞쪽일수록 우선)
 const FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash'];
 
-// 웹에는 SecureStore가 없어 AsyncStorage(브라우저 저장소)를 쓴다
-export async function getApiKey(): Promise<string | null> {
+/**
+ * 빌드할 때 .env 파일의 EXPO_PUBLIC_GEMINI_API_KEY로 넣어 둔 키.
+ * 설정 화면에 키를 입력하지 않아도 이 키로 동작한다. 앱 안에 그대로 들어가므로 개인용 빌드에만 쓴다
+ */
+export const BUILT_IN_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY?.trim() || null;
+
+/** 설정 화면에서 직접 저장한 키(웹에는 SecureStore가 없어 AsyncStorage를 쓴다) */
+export async function getSavedApiKey(): Promise<string | null> {
   if (Platform.OS === 'web') return AsyncStorage.getItem(KEY_NAME);
   return SecureStore.getItemAsync(KEY_NAME);
+}
+
+/** 실제로 쓸 키: 직접 저장한 키가 있으면 그것, 없으면 빌드에 넣은 키 */
+export async function getApiKey(): Promise<string | null> {
+  return (await getSavedApiKey()) || BUILT_IN_KEY;
 }
 
 export async function setApiKey(key: string): Promise<void> {

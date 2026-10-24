@@ -49,7 +49,9 @@ npx eas-cli@latest build --profile development --platform ios   # 아이폰/아�
 ### AI 기능 설정 (선택)
 기구 사진 인식과 AI 코치는 **Google AI Studio의 Gemini API 무료 등급**을 사용합니다(유료 API 불필요).
 1. 구글 계정으로 [aistudio.google.com/apikey](https://aistudio.google.com/apikey)에서 'API 키 만들기' (카드 등록 없음)
-2. 앱의 **오늘 → 톱니바퀴(설정)** 에 키 입력
+2. 둘 중 하나로 키를 넣습니다.
+   - 앱의 **오늘 → 톱니바퀴(설정)** 에 입력하거나,
+   - `.env.example`을 `.env`로 복사해 `EXPO_PUBLIC_GEMINI_API_KEY=` 뒤에 키를 넣고 앱을 다시 실행하면 입력 없이 바로 동작합니다. 이 키는 앱 안에 그대로 들어가니 본인 기기용 빌드에만 쓰고, `.env`는 커밋되지 않도록 `.gitignore`에 넣어 두었습니다.
 
 - 앱이 키로 쓸 수 있는 모델 목록을 조회해, 하루 무료 한도가 가장 큰 **Flash-Lite** 모델부터 쓰고 한도에 걸리면 Flash → Gemma 순으로 자동 전환합니다.
 - 무료 한도는 모델별로 다르며(예: Flash-Lite 계열은 하루 수백 회 수준) 구글이 수시로 바꿉니다. 정확한 한도는 AI Studio에서 확인하세요.

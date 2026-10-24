@@ -7,7 +7,7 @@ import { Platform, Switch, View } from 'react-native';
 import { Button, Card, Field, Notice, Row, Screen, T } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { clearApiKey, getApiKey, setApiKey } from '@/lib/ai';
+import { BUILT_IN_KEY, clearApiKey, getSavedApiKey, setApiKey } from '@/lib/ai';
 import { confirm, notify } from '@/lib/confirm';
 import { ensurePermission } from '@/lib/notifications';
 import { useStore } from '@/store/useStore';
@@ -22,7 +22,7 @@ export default function SettingsScreen() {
   const [hasKey, setHasKey] = useState(false);
 
   useEffect(() => {
-    getApiKey().then((k) => setHasKey(!!k));
+    getSavedApiKey().then((k) => setHasKey(!!k));
   }, []);
 
   const saveKey = async () => {
@@ -63,8 +63,14 @@ export default function SettingsScreen() {
             기구 사진 인식과 AI 코치는 Google의 Gemini API 무료 등급을 사용해요. 구글 계정으로 aistudio.google.com/apikey 에 들어가 ‘API 키 만들기’를 누르면 카드 등록 없이 무료 키를 받을 수 있어요. 키는 이 기기의 보안 저장소에만 저장돼요.
           </T>
           <Notice tone="warn">무료 등급에서는 보낸 사진과 질문이 구글의 모델 개선에 쓰일 수 있어요(유럽·영국 제외). 얼굴이나 개인정보가 나온 사진은 보내지 마세요. 하루 사용량을 다 쓰면 다음 날 다시 쓸 수 있어요.</Notice>
-          {hasKey ? <Notice tone="good">API 키가 저장되어 있어요.</Notice> : <Notice tone="warn">API 키가 없어요. 없어도 기구를 직접 체크하면 모든 기본 기능을 쓸 수 있어요.</Notice>}
-          <Field label={hasKey ? '새 키로 바꾸기' : 'API 키'} value={key} onChangeText={setKey} placeholder="AIza..." autoCapitalize="none" autoCorrect={false} secureTextEntry />
+          {hasKey ? (
+            <Notice tone="good">직접 입력한 API 키를 쓰고 있어요.</Notice>
+          ) : BUILT_IN_KEY ? (
+            <Notice tone="good">앱에 미리 넣어 둔 API 키를 쓰고 있어요. 따로 입력하지 않아도 돼요.</Notice>
+          ) : (
+            <Notice tone="warn">API 키가 없어요. 없어도 기구를 직접 체크하면 모든 기본 기능을 쓸 수 있어요.</Notice>
+          )}
+          <Field label={hasKey || BUILT_IN_KEY ? '다른 키로 바꾸기' : 'API 키'} value={key} onChangeText={setKey} placeholder="AIza..." autoCapitalize="none" autoCorrect={false} secureTextEntry />
           <Row wrap>
             <Button title="저장" icon="key" onPress={saveKey} disabled={!key.trim()} />
             {hasKey ? (
