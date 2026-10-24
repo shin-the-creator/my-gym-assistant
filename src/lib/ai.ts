@@ -1,17 +1,18 @@
-// Claude 연동: 기구 사진 인식 + AI 코치 질문.
-// API 키는 사용자가 설정 화면에서 입력하며 기기의 보안 저장소에만 보관한다.
+// AI 연동(무료): Google AI Studio의 Gemini API로 기구 사진 인식 + AI 코치 질문.
+// 키는 aistudio.google.com 에서 무료로 발급하고, 기기의 보안 저장소에만 보관한다.
+// 무료 등급은 모델별로 하루 요청 수가 정해져 있어서, 쓸 수 있는 모델을 조회한 뒤
+// 하루 한도가 넉넉한 Flash-Lite부터 쓰고 한도에 걸리면 다음 모델로 넘어간다.
 
-import Anthropic from '@anthropic-ai/sdk';
-import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import * as z from 'zod/v4';
+import { CATALOG, type ModelInfo, RECOGNITION_JSON_SCHEMA, type Recognition, parseRecognition, rankModels } from './ai-utils';
 
-import { EQUIPMENT } from '@/data/equipment';
+const API = 'https://generativelanguage.googleapis.com/v1beta';
+const KEY_NAME = 'gemini_api_key';
 
-const MODEL = 'claude-opus-5-5';
-const KEY_NAME = 'anthropic_api_key';
+// 모델 목록을 못 불러올 때 시도할 기본 후보(앞쪽일수록 우선)
+const FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash'];
 
 // 웹에는 SecureStore가 없어 AsyncStorage(브라우저 저장소)를 쓴다
 export async function getApiKey(): Promise<string | null> {
@@ -20,107 +21,136 @@ export async function getApiKey(): Promise<string | null> {
 }
 
 export async function setApiKey(key: string): Promise<void> {
+  cachedModels = null;
   if (Platform.OS === 'web') return AsyncStorage.setItem(KEY_NAME, key.trim());
   return SecureStore.setItemAsync(KEY_NAME, key.trim());
 }
 
 export async function clearApiKey(): Promise<void> {
+  cachedModels = null;
   if (Platform.OS === 'web') return AsyncStorage.removeItem(KEY_NAME);
   return SecureStore.deleteItemAsync(KEY_NAME);
 }
 
 export class AiError extends Error {}
 
-async function client(): Promise<Anthropic> {
-  const apiKey = await getApiKey();
-  if (!apiKey) throw new AiError('설정에서 Claude API 키를 먼저 입력해 주세요.');
-  // 개인용 앱이라 기기에서 직접 호출한다(키는 사용자 본인 것)
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+export type { Recognition };
+
+class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
 }
 
-function friendlyError(err: unknown): AiError {
-  if (err instanceof AiError) return err;
-  if (err instanceof Anthropic.AuthenticationError) return new AiError('API 키가 올바르지 않아요. 설정에서 다시 확인해 주세요.');
-  if (err instanceof Anthropic.RateLimitError) return new AiError('요청이 많아 잠시 막혔어요. 조금 뒤 다시 시도해 주세요.');
-  if (err instanceof Anthropic.APIConnectionError) return new AiError('인터넷 연결을 확인해 주세요.');
-  if (err instanceof Anthropic.APIError) return new AiError(`AI 요청 실패 (${err.status ?? '알 수 없음'}): ${err.message}`);
-  return new AiError(err instanceof Error ? err.message : 'AI 요청 중 오류가 발생했어요.');
-}
+let cachedModels: string[] | null = null;
 
-const equipmentIds = EQUIPMENT.map((e) => e.id) as [string, ...string[]];
-
-const RecognitionSchema = z.object({
-  items: z.array(
-    z.object({
-      equipmentId: z.enum(equipmentIds),
-      confidence: z.enum(['high', 'medium', 'low']),
-      maxWeightKg: z.number().nullable().describe('사진에서 읽을 수 있는 최대 무게(덤벨 랙 최댓값, 웨이트 스택 최댓값 등). 모르면 null'),
-      note: z.string().describe('한국어로 짧게: 무엇을 보고 판단했는지, 세팅 관련 특이사항'),
-    }),
-  ),
-  unknown: z.array(z.string()).describe('카탈로그에 없지만 사진에 보이는 기구(한국어)'),
-  summary: z.string().describe('한국어 한두 문장 요약'),
-});
-
-export type Recognition = z.infer<typeof RecognitionSchema>;
-
-const CATALOG = EQUIPMENT.map((e) => `- ${e.id}: ${e.name} (${e.hint})`).join('\n');
-
-export async function recognizeEquipment(base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg'): Promise<Recognition> {
+async function request<T>(path: string, apiKey: string, body?: unknown): Promise<T> {
+  let res: Response;
   try {
-    const c = await client();
-    const response = await c.beta.messages.parse({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'medium', format: betaZodOutputFormat(RecognitionSchema) },
-      system:
-        '당신은 헬스장 기구를 알아보는 전문 트레이너입니다. 사진에 실제로 보이는 운동기구만 아래 카탈로그 id로 골라 주세요. ' +
-        '아파트 커뮤니티 헬스장, 야외 철봉·평행봉, 학교 운동장 기구 사진도 들어옵니다. 확실하지 않으면 confidence를 low로 하세요.\n\n' +
-        `카탈로그:\n${CATALOG}`,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
-            { type: 'text', text: '이 사진에 있는 운동기구를 알려 주세요.' },
-          ],
-        },
-      ],
+    res = await fetch(`${API}/${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
     });
-    if (response.stop_reason === 'refusal') throw new AiError('이 사진은 분석할 수 없어요. 다른 사진으로 시도해 주세요.');
-    if (!response.parsed_output) throw new AiError('AI 응답을 해석하지 못했어요. 다시 시도해 주세요.');
-    return response.parsed_output;
-  } catch (err) {
-    throw friendlyError(err);
+  } catch {
+    throw new AiError('인터넷 연결을 확인해 주세요.');
+  }
+  const json = (await res.json().catch(() => ({}))) as { error?: { message?: string; status?: string } } & T;
+  if (!res.ok) throw new HttpError(res.status, json.error?.message ?? json.error?.status ?? `HTTP ${res.status}`);
+  return json;
+}
+
+async function models(apiKey: string): Promise<string[]> {
+  if (cachedModels) return cachedModels;
+  try {
+    const list = await request<{ models?: ModelInfo[] }>('models?pageSize=1000', apiKey);
+    const ranked = rankModels(list.models ?? []);
+    cachedModels = ranked.length ? ranked : FALLBACK_MODELS;
+  } catch (e) {
+    if (e instanceof HttpError && (e.status === 400 || e.status === 401 || e.status === 403)) throw friendly(e);
+    return FALLBACK_MODELS;
+  }
+  return cachedModels;
+}
+
+function friendly(e: unknown): AiError {
+  if (e instanceof AiError) return e;
+  if (e instanceof HttpError) {
+    if (e.status === 400 && /api key/i.test(e.message)) return new AiError('API 키가 올바르지 않아요. 설정에서 다시 확인해 주세요.');
+    if (e.status === 401 || e.status === 403) return new AiError('API 키가 올바르지 않거나 권한이 없어요. 설정에서 다시 확인해 주세요.');
+    if (e.status === 429) return new AiError('오늘 무료 사용량을 다 썼어요. 내일 다시 시도하거나, 기구를 직접 체크해 주세요.');
+    return new AiError(`AI 요청 실패 (${e.status}): ${e.message}`);
+  }
+  return new AiError(e instanceof Error ? e.message : 'AI 요청 중 오류가 발생했어요.');
+}
+
+interface Part {
+  text?: string;
+  inlineData?: { mimeType: string; data: string };
+}
+
+interface GenerateResponse {
+  candidates?: { content?: { parts?: Part[] }; finishReason?: string }[];
+  promptFeedback?: { blockReason?: string };
+}
+
+/** 후보 모델을 차례로 시도한다. 한도 초과(429)나 없는 모델(404)이면 다음 모델로 */
+async function generate(system: string, parts: Part[], json?: object): Promise<string> {
+  const apiKey = await getApiKey();
+  if (!apiKey) throw new AiError('설정에서 무료 Gemini API 키를 먼저 입력해 주세요.');
+  const candidates = await models(apiKey);
+  let lastError: unknown = null;
+
+  for (const model of candidates.slice(0, 5)) {
+    const isGemma = model.startsWith('gemma');
+    const body = {
+      // Gemma는 시스템 지시를 따로 받지 않아 사용자 메시지 앞에 붙인다
+      ...(isGemma ? {} : { systemInstruction: { parts: [{ text: system }] } }),
+      contents: [{ role: 'user', parts: isGemma ? [{ text: system }, ...parts] : parts }],
+      generationConfig: json && !isGemma ? { responseMimeType: 'application/json', responseJsonSchema: json } : {},
+    };
+    try {
+      const res = await request<GenerateResponse>(`models/${model}:generateContent`, apiKey, body);
+      if (res.promptFeedback?.blockReason) throw new AiError('이 요청은 처리할 수 없어요. 다른 사진이나 질문으로 시도해 주세요.');
+      const cand = res.candidates?.[0];
+      const text = (cand?.content?.parts ?? []).map((p) => p.text ?? '').join('').trim();
+      if (!text) throw new AiError(cand?.finishReason === 'SAFETY' ? '이 요청은 처리할 수 없어요.' : 'AI가 답을 주지 않았어요. 다시 시도해 주세요.');
+      return text;
+    } catch (e) {
+      lastError = e;
+      if (e instanceof HttpError && (e.status === 429 || e.status === 404 || e.status >= 500)) {
+        if (e.status === 404 && cachedModels) cachedModels = cachedModels.filter((m) => m !== model);
+        continue;
+      }
+      throw friendly(e);
+    }
+  }
+  throw friendly(lastError);
+}
+
+/** 모델이 코드블록 등으로 감싼 JSON도 꺼낸다 */
+export async function recognizeEquipment(base64: string, mediaType: 'image/jpeg' | 'image/png' | 'image/webp' = 'image/jpeg'): Promise<Recognition> {
+  const system =
+    '당신은 헬스장 기구를 알아보는 전문 트레이너입니다. 사진에 실제로 보이는 운동기구만 아래 카탈로그 id로 골라 주세요. ' +
+    '아파트 커뮤니티 헬스장, 야외 철봉·평행봉, 학교 운동장 기구 사진도 들어옵니다. 확실하지 않으면 confidence를 low로 하세요. ' +
+    '반드시 {"items":[{"equipmentId","confidence","maxWeightKg","note"}],"unknown":[],"summary":""} 형태의 JSON만 답하세요.\n\n' +
+    `카탈로그:\n${CATALOG}`;
+  const text = await generate(system, [{ inlineData: { mimeType: mediaType, data: base64 } }, { text: '이 사진에 있는 운동기구를 알려 주세요.' }], RECOGNITION_JSON_SCHEMA);
+  try {
+    return parseRecognition(text);
+  } catch {
+    throw new AiError('AI 응답을 해석하지 못했어요. 다시 시도해 주세요.');
   }
 }
 
 export async function askCoach(question: string, context: string): Promise<string> {
-  try {
-    const c = await client();
-    const response = await c.beta.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'medium' },
-      system:
-        '당신은 사용자의 개인 헬스케어 트레이너입니다. 한국어로, 친근하지만 근거 있게 답하세요. ' +
-        '아래 사용자 정보와 루틴을 바탕으로 구체적인 숫자(세트·반복·무게·시간·양)를 들어 조언하세요. ' +
-        '통증이나 질환이 의심되면 운동을 멈추고 전문의 상담을 권하세요. 답변은 모바일 화면에서 읽기 좋게 짧은 문단과 목록으로.\n\n' +
-        `사용자 정보:\n${context}`,
-      messages: [{ role: 'user', content: question }],
-    });
-    if (response.stop_reason === 'refusal') return '이 질문에는 답하기 어려워요. 질문을 조금 바꿔 다시 물어봐 주세요.';
-    const text = response.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b.type === 'text' ? b.text : ''))
-      .join('\n')
-      .trim();
-    return text || '답변을 받지 못했어요. 다시 시도해 주세요.';
-  } catch (err) {
-    throw friendlyError(err);
-  }
+  const system =
+    '당신은 사용자의 개인 헬스케어 트레이너입니다. 한국어로, 친근하지만 근거 있게 답하세요. ' +
+    '아래 사용자 정보와 루틴을 바탕으로 구체적인 숫자(세트·반복·무게·시간·양)를 들어 조언하세요. ' +
+    '통증이나 질환이 의심되면 운동을 멈추고 전문의 상담을 권하세요. 모바일 화면에서 읽기 좋게 짧은 문단과 목록으로 답하고, 마크다운 기호(#, **)는 쓰지 마세요.\n\n' +
+    `사용자 정보:\n${context}`;
+  return generate(system, [{ text: question }]);
 }

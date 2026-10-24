@@ -1,4 +1,4 @@
-// 설정: Claude API 키, 알림, 데이터 초기화
+// 설정: 무료 AI(Gemini) 키, 알림, 데이터 초기화
 
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -26,8 +26,8 @@ export default function SettingsScreen() {
   }, []);
 
   const saveKey = async () => {
-    if (!key.trim().startsWith('sk-')) {
-      notify('API 키 확인', 'Claude API 키는 보통 sk-ant- 로 시작해요.');
+    if (key.trim().length < 20) {
+      notify('API 키 확인', 'Google AI Studio에서 받은 키 전체를 붙여 넣어 주세요. 보통 AIza 로 시작해요.');
       return;
     }
     await setApiKey(key);
@@ -57,13 +57,14 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      <Card title="AI 기능 (Claude)" icon="sparkles">
+      <Card title="AI 기능 (무료 · Google Gemini)" icon="sparkles">
         <View style={{ gap: Spacing.md }}>
           <T kind="secondary">
-            기구 사진 인식과 AI 코치는 Anthropic의 Claude를 사용해요. console.anthropic.com 에서 발급한 본인 API 키를 넣어 주세요. 키는 이 기기의 보안 저장소에만 저장되고, 사진과 질문은 분석할 때만 Anthropic으로 전송돼요.
+            기구 사진 인식과 AI 코치는 Google의 Gemini API 무료 등급을 사용해요. 구글 계정으로 aistudio.google.com/apikey 에 들어가 ‘API 키 만들기’를 누르면 카드 등록 없이 무료 키를 받을 수 있어요. 키는 이 기기의 보안 저장소에만 저장돼요.
           </T>
+          <Notice tone="warn">무료 등급에서는 보낸 사진과 질문이 구글의 모델 개선에 쓰일 수 있어요(유럽·영국 제외). 얼굴이나 개인정보가 나온 사진은 보내지 마세요. 하루 사용량을 다 쓰면 다음 날 다시 쓸 수 있어요.</Notice>
           {hasKey ? <Notice tone="good">API 키가 저장되어 있어요.</Notice> : <Notice tone="warn">API 키가 없어요. 없어도 기구를 직접 체크하면 모든 기본 기능을 쓸 수 있어요.</Notice>}
-          <Field label={hasKey ? '새 키로 바꾸기' : 'API 키'} value={key} onChangeText={setKey} placeholder="sk-ant-..." autoCapitalize="none" autoCorrect={false} secureTextEntry />
+          <Field label={hasKey ? '새 키로 바꾸기' : 'API 키'} value={key} onChangeText={setKey} placeholder="AIza..." autoCapitalize="none" autoCorrect={false} secureTextEntry />
           <Row wrap>
             <Button title="저장" icon="key" onPress={saveKey} disabled={!key.trim()} />
             {hasKey ? (

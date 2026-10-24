@@ -72,7 +72,7 @@ export default function CoachScreen() {
               <Chip key={s} label={s} onPress={() => ask(s)} />
             ))}
           </ChipRow>
-          <T kind="small">AI 코치는 Claude를 사용해요. 설정에서 API 키를 입력해야 동작합니다. 의학적 진단을 대신하지 않아요.</T>
+          <T kind="small">AI 코치는 Google Gemini 무료 API를 사용해요. 설정에서 무료 키를 입력해야 동작하고, 하루 사용량에 한도가 있어요. 의학적 진단을 대신하지 않아요.</T>
         </View>
       </Card>
 

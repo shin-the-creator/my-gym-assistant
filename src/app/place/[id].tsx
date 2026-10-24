@@ -53,7 +53,7 @@ export default function PlaceDetailScreen() {
       updatePlace(place.id, { photos: [...place.photos, photo.uri] });
       if (!photo.base64) return;
       if (!(await getApiKey())) {
-        setError('사진은 저장했어요. AI 기구 인식을 쓰려면 설정에서 Claude API 키를 입력해 주세요. 아래에서 직접 체크할 수도 있어요.');
+        setError('사진은 저장했어요. AI 기구 인식을 쓰려면 설정에서 무료 Gemini API 키를 입력해 주세요. 아래에서 직접 체크할 수도 있어요.');
         return;
       }
       setBusy(true);
