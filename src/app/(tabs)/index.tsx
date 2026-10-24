@@ -1,15 +1,16 @@
-// 오늘: 차분한 상단 문구 → 핵심 수치(운동 칼로리·시간·물) → 오늘의 루틴 → 하단 운동 시작 버튼
+// 오늘: 차분한 상단 문구 → 핵심 수치(칼로리·시간·걸음·물) → 오늘의 루틴 → 하단 운동 시작 버튼
 
 import { router } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Button, Card, Empty, type IconName, ListCard, ListRow, Metric, Progress, Row, Screen, SectionLabel, T, Title } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { PATTERN_NAMES } from '@/data/exercises';
 import { useProgram, useToday } from '@/hooks/use-plan';
+import { useTodaySteps } from '@/hooks/use-steps';
 import { useLayout } from '@/hooks/use-theme';
-import { activeKcalGoal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
+import { activeKcalGoal, stepGoal, stepsKcal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
 import { planDay } from '@/lib/routine';
 import type { ScheduleKind } from '@/lib/schedule';
 import { EVENT_KINDS, eventsOn } from '@/lib/scheduler';
@@ -45,6 +46,7 @@ export default function TodayScreen() {
   const profile = useStore((s) => s.profile);
   const places = useStore((s) => s.places);
   const workouts = useStore((s) => s.workouts);
+  const { steps, status: stepsStatus, ask: askSteps } = useTodaySteps();
   const events = useStore((s) => s.events);
   const active = useStore((s) => s.activeWorkout);
   const lastPlaceId = useStore((s) => s.lastPlaceId);
@@ -83,7 +85,7 @@ export default function TodayScreen() {
 
   // 핵심 수치
   const minutes = workoutMinutesOn(today.today, workouts, active, now);
-  const kcal = workoutKcal(minutes, profile.weightKg);
+  const kcal = workoutKcal(minutes, profile.weightKg) + stepsKcal(steps ?? 0, profile.weightKg);
   const planned = plan.length ? estimateMinutes(plan) : 45;
   const minuteGoal = today.workoutDay ? planned : 30;
   const doneToday = workouts.some((w) => w.date === today.today);
@@ -133,13 +135,36 @@ export default function TodayScreen() {
 
   const stats = (
     <View style={{ gap: Spacing.md }}>
-      <Row gap={Spacing.md} style={{ alignItems: 'stretch' }}>
+      <Row gap={Spacing.sm} style={{ alignItems: 'stretch' }}>
         <View style={{ flex: 1 }}>
-          <Metric label="운동 칼로리" value={kcal} unit="kcal" goal={activeKcalGoal(profile.goal)} />
+          <Metric size="sm" label="칼로리" value={kcal} unit="kcal" goal={activeKcalGoal(profile.goal)} footnote={`/ ${activeKcalGoal(profile.goal)}`} />
         </View>
         <View style={{ flex: 1 }}>
-          <Metric label="운동 시간" value={minutes} unit="분" goal={minuteGoal} />
+          <Metric size="sm" label="운동" value={minutes} unit="분" goal={minuteGoal} footnote={`/ ${minuteGoal}분`} />
         </View>
+        <Pressable
+          style={{ flex: 1 }}
+          disabled={stepsStatus === 'ok' || stepsStatus === 'unsupported'}
+          onPress={askSteps}
+          accessibilityRole="button"
+          accessibilityLabel="걸음 수 권한 허용">
+          <Metric
+            size="sm"
+            label="걸음"
+            value={steps}
+            unit="보"
+            goal={stepGoal(profile.goal)}
+            footnote={
+              stepsStatus === 'need-permission'
+                ? '눌러서 권한 허용'
+                : stepsStatus === 'blocked'
+                  ? '눌러서 설정 열기'
+                  : stepsStatus === 'unsupported'
+                    ? '측정 불가'
+                    : `/ ${stepGoal(profile.goal).toLocaleString('ko-KR')}`
+            }
+          />
+        </Pressable>
       </Row>
       {/* 물: 한 장의 작은 카드에 숫자·게이지·버튼을 함께 */}
       <Card>
