@@ -2,7 +2,7 @@
   "expo": {
     "name": "My Gym Trainer",
     "slug": "my-gym-assistant",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "mygymtrainer",
@@ -54,6 +54,12 @@
         "expo-sensors",
         {
           "motionPermission": "오늘 걸음 수를 대시보드에 보여 주는 데 사용해요."
+        }
+      ],
+      [
+        "llama.rn",
+        {
+          "enableOpenCLAndHexagon": false
         }
       ]
     ],

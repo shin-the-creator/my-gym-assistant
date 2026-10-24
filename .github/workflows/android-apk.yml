@@ -17,6 +17,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 앱이 받는 Gemma 모델 주소가 로그인 없이 열리는지 확인(빌드와 별개, 실패해도 빌드는 진행)
+  model-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    steps:
+      - name: Check Gemma GGUF download links
+        run: |
+          for url in \
+            "https://huggingface.co/ggml-org/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf" \
+            "https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/resolve/main/gemma-3-1b-it-Q4_K_M.gguf" \
+            "https://huggingface.co/ggml-org/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf" \
+            "https://huggingface.co/unsloth/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf"; do
+            out=$(curl -sIL -o /dev/null -w "%{http_code} %{size_download} %{url_effective}" --max-time 30 -r 0-0 "$url" || true)
+            len=$(curl -sIL --max-time 30 "$url" | grep -i '^content-length' | tail -1 | tr -d '\r' || true)
+            echo "MODEL_LINK $url -> $out | $len"
+          done
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60

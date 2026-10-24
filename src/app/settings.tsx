@@ -11,7 +11,8 @@ import { BUILT_IN_KEY, clearApiKey, getSavedApiKey, setApiKey } from '@/lib/ai';
 import { confirm, notify } from '@/lib/confirm';
 import { ensurePermission } from '@/lib/notifications';
 import { useStore } from '@/store/useStore';
-import type { Settings } from '@/types/models';
+
+type ReminderKey = 'waterReminders' | 'mealReminders' | 'sleepReminder';
 
 export default function SettingsScreen() {
   const c = useTheme();
@@ -37,7 +38,7 @@ export default function SettingsScreen() {
     updateSettings({ apiKeyConfigured: true });
   };
 
-  const toggle = async (field: keyof Omit<Settings, 'apiKeyConfigured'>, value: boolean) => {
+  const toggle = async (field: ReminderKey, value: boolean) => {
     // 실제 알림 등록은 앱 루트의 ReminderSync가 설정 변화를 보고 처리한다
     if (value && !(await ensurePermission())) {
       notify('알림 권한', '알림 권한이 없어요. 휴대폰 설정에서 이 앱의 알림을 허용해 주세요.');
@@ -46,7 +47,7 @@ export default function SettingsScreen() {
     updateSettings({ [field]: value });
   };
 
-  const reminderRow = (field: keyof Omit<Settings, 'apiKeyConfigured'>, title: string, desc: string) => (
+  const reminderRow = (field: ReminderKey, title: string, desc: string) => (
     <Row style={{ paddingVertical: Spacing.sm }}>
       <View style={{ flex: 1 }}>
         <T style={{ fontWeight: '600' }}>{title}</T>
@@ -58,7 +59,16 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      <Card title="AI 기능 (무료 · Google Gemini)" icon="sparkles">
+      <Card title="AI 코치" icon="chatbubbles">
+        <ListRow
+          marker="phone-portrait-outline"
+          title="AI 코치 엔진 · 모델"
+          subtitle={settings.coachEngine === 'gemini' ? 'Gemini API 사용 중(키 필요)' : '폰 안 Gemma 3 · 무료·오프라인·키 필요 없음'}
+          onPress={() => router.push('/ai-model')}
+        />
+      </Card>
+
+      <Card title="사진 분석 AI (무료 · Google Gemini)" icon="sparkles">
         <View style={{ gap: Spacing.md }}>
           <T kind="secondary">
             기구 사진 인식과 AI 코치는 Google의 Gemini API 무료 등급을 사용해요. 구글 계정으로 aistudio.google.com/apikey 에 들어가 ‘API 키 만들기’를 누르면 카드 등록 없이 무료 키를 받을 수 있어요. 키는 이 기기의 보안 저장소에만 저장돼요.

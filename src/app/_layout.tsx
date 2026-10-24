@@ -62,6 +62,7 @@ export default function RootLayout() {
         <Stack.Screen name="food" options={{ title: '음식 기록', presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="school" options={{ title: '학교 급식 연결' }} />
         <Stack.Screen name="feedback" options={{ title: '의견 보내기' }} />
+        <Stack.Screen name="ai-model" options={{ title: 'AI 코치 엔진' }} />
       </Stack>
     </ThemeProvider>
     </KeyboardProvider>

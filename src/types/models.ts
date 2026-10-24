@@ -101,6 +101,10 @@ export interface Settings {
   waterReminders: boolean;
   sleepReminder: boolean;
   mealReminders: boolean;
+  /** AI 코치를 어디서 돌릴지: 폰 안 Gemma(무료·오프라인) 또는 Gemini API(키 필요) */
+  coachEngine?: 'local' | 'gemini';
+  /** 폰 안에서 쓸 모델 */
+  localModelId?: 'gemma3-1b' | 'gemma3-4b';
 }
 
 export type MealSlotKey = 'breakfast' | 'lunch' | 'dinner' | 'snack';

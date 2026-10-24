@@ -1,14 +1,17 @@
 // AI 코치: 내 정보·루틴·기록을 아는 트레이너에게 질문
+// 기본은 폰 안의 Gemma 3(무료·오프라인), 설정에서 Gemini(키 필요)로 바꿀 수 있다.
 
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
-import { Button, Card, Chip, ChipRow, Field, Notice, Screen, T } from '@/components/ui';
+import { Button, Card, Chip, ChipRow, Field, Notice, Progress, Row, Screen, T } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useProgram } from '@/hooks/use-plan';
 import { askCoach } from '@/lib/ai';
 import { coachContext } from '@/lib/context';
+import { askLocalCoach, deviceMemory, isInstalled, localAiSupported, stopLocal } from '@/lib/local-ai';
+import { getLocalModel, recommendModel } from '@/lib/local-models';
 import { useStore } from '@/store/useStore';
 
 const SUGGESTIONS = [
@@ -23,6 +26,7 @@ interface QA {
   q: string;
   a?: string;
   error?: string;
+  done?: boolean;
 }
 
 export default function CoachScreen() {
@@ -30,10 +34,28 @@ export default function CoachScreen() {
   const places = useStore((s) => s.places);
   const workouts = useStore((s) => s.workouts);
   const weights = useStore((s) => s.weights);
+  const settings = useStore((s) => s.settings);
   const { program } = useProgram();
   const [question, setQuestion] = useState('');
   const [history, setHistory] = useState<QA[]>([]);
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState<number | null>(null);
+  const [modelReady, setModelReady] = useState<boolean | null>(null);
+
+  // 웹·키 사용 설정이 아니면 폰 안 Gemma가 기본
+  const engine = !localAiSupported ? 'gemini' : (settings.coachEngine ?? 'local');
+  const model = getLocalModel(settings.localModelId) ?? recommendModel(deviceMemory);
+
+  // 모델 화면에서 받고 돌아오면 다시 확인한다
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      if (engine === 'local') isInstalled(model).then((ok) => alive && setModelReady(ok));
+      return () => {
+        alive = false;
+      };
+    }, [engine, model]),
+  );
 
   if (!profile) {
     return (
@@ -44,42 +66,76 @@ export default function CoachScreen() {
     );
   }
 
+  const setFirst = (patch: Partial<QA>) => setHistory((h) => h.map((item, i) => (i === 0 ? { ...item, ...patch } : item)));
+
   const ask = async (q: string) => {
     const text = q.trim();
     if (!text || busy) return;
     setQuestion('');
     setBusy(true);
     setHistory((h) => [{ q: text }, ...h]);
+    const context = coachContext(profile, program, places, workouts, weights);
     try {
-      const a = await askCoach(text, coachContext(profile, program, places, workouts, weights));
-      setHistory((h) => h.map((item, i) => (i === 0 ? { ...item, a } : item)));
+      if (engine === 'local') {
+        const a = await askLocalCoach(model, text, context, (soFar) => setFirst({ a: soFar }), (p) => setLoading(p < 1 ? p : null));
+        setFirst({ a, done: true });
+      } else {
+        setFirst({ a: await askCoach(text, context), done: true });
+      }
     } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-      setHistory((h) => h.map((item, i) => (i === 0 ? { ...item, error } : item)));
+      setFirst({ error: e instanceof Error ? e.message : String(e), done: true });
     } finally {
+      setLoading(null);
       setBusy(false);
     }
   };
 
+  const needsModel = engine === 'local' && modelReady === false;
+
   return (
     <Screen edges={['bottom']}>
+      {needsModel ? (
+        <Card tone="primary">
+          <View style={{ gap: Spacing.md }}>
+            <T kind="heading">폰 안에서 도는 무료 AI 코치</T>
+            <T kind="secondary">{`${model.name} 모델(약 ${model.sizeMB >= 1000 ? `${(model.sizeMB / 1024).toFixed(1)}GB` : `${model.sizeMB}MB`})을 한 번 받으면 키·계정·인터넷 없이 질문할 수 있어요.`}</T>
+            <Button title="AI 모델 받으러 가기" icon="download-outline" onPress={() => router.push('/ai-model')} />
+          </View>
+        </Card>
+      ) : null}
+
       <Card>
         <View style={{ gap: Spacing.md }}>
           <Field label="질문" value={question} onChangeText={setQuestion} placeholder="무엇이든 물어보세요" multiline onSubmitEditing={() => ask(question)} />
-          <Button title={busy ? '생각하는 중…' : '물어보기'} icon="send" loading={busy} onPress={() => ask(question)} disabled={!question.trim()} />
+          <Row gap={Spacing.sm}>
+            <Button title={busy ? '답하는 중…' : '물어보기'} icon="send" loading={busy} onPress={() => ask(question)} disabled={!question.trim() || needsModel} style={{ flex: 1 }} />
+            {busy && engine === 'local' ? <Button title="멈추기" kind="secondary" onPress={() => stopLocal()} /> : null}
+          </Row>
+          {loading !== null ? (
+            <View style={{ gap: 6 }}>
+              <Progress value={loading} />
+              <T kind="small">AI 모델을 준비하는 중이에요(처음 한 번만 오래 걸려요)</T>
+            </View>
+          ) : null}
           <ChipRow>
             {SUGGESTIONS.map((s) => (
               <Chip key={s} label={s} onPress={() => ask(s)} />
             ))}
           </ChipRow>
-          <T kind="small">AI 코치는 Google Gemini 무료 API를 사용해요. 설정에서 무료 키를 입력해야 동작하고, 하루 사용량에 한도가 있어요. 의학적 진단을 대신하지 않아요.</T>
+          <T kind="small">
+            {engine === 'local'
+              ? `${model.name} · 폰 안에서 답해요(무료·오프라인). 작은 모델이라 틀릴 수 있고, 의학적 진단을 대신하지 않아요.`
+              : 'Google Gemini 무료 API로 답해요. 설정에 키가 있어야 하고 하루 사용량에 한도가 있어요. 의학적 진단을 대신하지 않아요.'}
+          </T>
+          {localAiSupported ? <Button small kind="ghost" title="AI 엔진·모델 바꾸기" icon="options-outline" onPress={() => router.push('/ai-model')} style={{ alignSelf: 'flex-start' }} /> : null}
         </View>
       </Card>
 
       {history.map((item, i) => (
-        <Card key={`${i}-${item.q}`} title={item.q} icon="chatbubble-ellipses">
-          {item.a ? <T>{item.a}</T> : item.error ? <Notice tone="warn">{item.error}</Notice> : <T kind="secondary">답변을 준비하고 있어요…</T>}
-          {item.error?.includes('API 키') ? <Button title="설정으로 이동" kind="secondary" onPress={() => router.push('/settings')} style={{ marginTop: Spacing.md }} /> : null}
+        <Card key={`${history.length - i}-${item.q}`} title={item.q} icon="chatbubble-ellipses">
+          {item.a ? <T>{item.a + (item.done ? '' : ' ▍')}</T> : item.error ? null : <T kind="secondary">답변을 준비하고 있어요…</T>}
+          {item.error ? <Notice tone="warn">{item.error}</Notice> : null}
+          {item.error?.includes('API 키') || item.error?.includes('키를') ? <Button title="설정으로 이동" kind="secondary" onPress={() => router.push('/settings')} style={{ marginTop: Spacing.md }} /> : null}
         </Card>
       ))}
     </Screen>
