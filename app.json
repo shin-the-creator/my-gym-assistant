@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "My Gym Trainer",
+    "slug": "my-gym-assistant",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "mygymtrainer",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mygymassistant.trainer",
+      "infoPlist": {
+        "NSCameraUsageDescription": "운동기구 사진을 찍어 장소에 있는 기구를 인식하는 데 사용해요.",
+        "NSPhotoLibraryUsageDescription": "앨범의 운동기구 사진을 불러오는 데 사용해요."
+      }
+    },
+    "android": {
+      "package": "com.mygymassistant.trainer",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1E6BFF",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "운동기구 사진을 찍어 장소에 있는 기구를 인식하는 데 사용해요.",
+          "photosPermission": "앨범의 운동기구 사진을 불러오는 데 사용해요."
+        }
+      ],
+      "expo-notifications",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
