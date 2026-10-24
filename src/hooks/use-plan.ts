@@ -12,11 +12,14 @@ import { useStore } from '@/store/useStore';
 export function useProgram() {
   const profile = useStore((s) => s.profile);
   const workouts = useStore((s) => s.workouts);
+  const custom = useStore((s) => s.customProgram);
   return useMemo(() => {
-    if (!profile) return { program: [], nextIndex: 0 };
-    const program = buildProgram(profile);
-    return { program, nextIndex: nextDayIndex(program, workouts) };
-  }, [profile, workouts]);
+    if (!profile) return { program: [], nextIndex: 0, isCustom: false };
+    // 직접 만든 루틴이 있으면 그것을, 없으면 내 정보(주당 횟수·목표·경력)로 자동 추천
+    const isCustom = !!custom && custom.length > 0;
+    const program = isCustom ? custom : buildProgram(profile);
+    return { program, nextIndex: nextDayIndex(program, workouts), isCustom };
+  }, [profile, workouts, custom]);
 }
 
 /** 오늘 운동을 하는 날인지: 이미 했거나, 이번 주 목표 횟수를 아직 못 채웠으면 운동일 */

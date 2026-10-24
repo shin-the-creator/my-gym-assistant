@@ -5,6 +5,7 @@ import { useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import type { ProgramDay } from '@/lib/routine';
 import { dateKey } from '@/lib/time';
 import type { ExerciseLog, FoodEntry, Place, PlaceEquipment, Profile, School, SchoolMeal, Settings, WeightEntry, WorkoutLog } from '@/types/models';
 
@@ -24,6 +25,8 @@ interface State {
   foodLog: FoodEntry[];
   /** 급식을 불러올 학교 */
   school: School | null;
+  /** 직접 만든 분할 루틴(없으면 내 정보로 자동 추천) */
+  customProgram: ProgramDay[] | null;
   /** 날짜별 급식(나이스에서 받아 둔 것) */
   schoolMeals: Record<string, SchoolMeal[]>;
   settings: Settings;
@@ -52,6 +55,7 @@ interface State {
   addFood: (entries: Omit<FoodEntry, 'id' | 'createdAt'>[]) => void;
   removeFood: (id: string) => void;
   setSchool: (school: School | null) => void;
+  setCustomProgram: (program: ProgramDay[] | null) => void;
   cacheSchoolMeals: (date: string, meals: SchoolMeal[]) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetAll: () => void;
@@ -67,6 +71,7 @@ const initial = {
   foodLog: [],
   school: null,
   schoolMeals: {},
+  customProgram: null,
   settings: { apiKeyConfigured: false, waterReminders: false, sleepReminder: false, mealReminders: false },
   lastPlaceId: null,
 };
@@ -144,6 +149,7 @@ export const useStore = create<State>()(
         set((s) => ({ foodLog: [...s.foodLog, ...entries.map((e) => ({ ...e, id: newId(), createdAt: Date.now() }))] })),
       removeFood: (id) => set((s) => ({ foodLog: s.foodLog.filter((f) => f.id !== id) })),
       setSchool: (school) => set({ school, schoolMeals: {} }),
+      setCustomProgram: (customProgram) => set({ customProgram }),
       cacheSchoolMeals: (date, meals) =>
         set((s) => {
           // 최근 60일치만 보관해 저장 공간을 아낀다

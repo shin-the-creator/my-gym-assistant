@@ -51,14 +51,7 @@ export function looksComplete(model: LocalModel, bytes: number): boolean {
   return bytes >= model.sizeMB * 1024 * 1024 * 0.85;
 }
 
-/** 작은 모델에 맞춘 짧은 시스템 지시 */
-export function localCoachSystemPrompt(context: string): string {
-  return [
-    '너는 사용자의 개인 헬스 트레이너야. 반드시 한국어로, 짧고 친절하게 답해.',
-    '아래 사용자 정보를 참고해서 세트·횟수·시간·양 같은 구체적인 숫자로 조언해.',
-    '모르는 것은 모른다고 말해. 통증이나 질환이 의심되면 운동을 멈추고 병원에 가라고 안내해.',
-    '목록은 "-"로 시작하고, 5줄 안팎으로 답해.',
-    '',
-    `[사용자 정보]\n${context}`,
-  ].join('\n');
+/** 작은 모델용 시스템 지시: 역할(coachRoleInstruction) + 짧게 답하라는 형식 + 사용자 정보 */
+export function localCoachSystemPrompt(context: string, role: string): string {
+  return [role, '반드시 한국어로 답하고, 목록은 "-"로 시작해 5줄 안팎으로 답해.', '', `[사용자 정보]\n${context}`].join('\n');
 }

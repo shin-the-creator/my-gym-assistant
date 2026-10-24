@@ -9,6 +9,8 @@ import { Button, Card, Chip, ChipRow, Field, Notice, Progress, Row, Screen, T } 
 import { Spacing } from '@/constants/theme';
 import { useProgram } from '@/hooks/use-plan';
 import { askCoach } from '@/lib/ai';
+import { ageFrom } from '@/lib/body';
+import { COACH_DOES, COACH_DOESNT, coachRoleInstruction } from '@/lib/coach-role';
 import { coachContext } from '@/lib/context';
 import { askLocalCoach, deviceMemory, isInstalled, localAiSupported, stopLocal } from '@/lib/local-ai';
 import { getLocalModel, recommendModel } from '@/lib/local-models';
@@ -41,6 +43,7 @@ export default function CoachScreen() {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState<number | null>(null);
   const [modelReady, setModelReady] = useState<boolean | null>(null);
+  const [showRole, setShowRole] = useState(false);
 
   // 웹·키 사용 설정이 아니면 폰 안 Gemma가 기본
   const engine = !localAiSupported ? 'gemini' : (settings.coachEngine ?? 'local');
@@ -75,12 +78,13 @@ export default function CoachScreen() {
     setBusy(true);
     setHistory((h) => [{ q: text }, ...h]);
     const context = coachContext(profile, program, places, workouts, weights);
+    const role = coachRoleInstruction(ageFrom(profile.birthYear));
     try {
       if (engine === 'local') {
-        const a = await askLocalCoach(model, text, context, (soFar) => setFirst({ a: soFar }), (p) => setLoading(p < 1 ? p : null));
+        const a = await askLocalCoach(model, text, context, role, (soFar) => setFirst({ a: soFar }), (p) => setLoading(p < 1 ? p : null));
         setFirst({ a, done: true });
       } else {
-        setFirst({ a: await askCoach(text, context), done: true });
+        setFirst({ a: await askCoach(text, context, role), done: true });
       }
     } catch (e) {
       setFirst({ error: e instanceof Error ? e.message : String(e), done: true });
@@ -103,6 +107,22 @@ export default function CoachScreen() {
           </View>
         </Card>
       ) : null}
+
+      <Card title="AI 코치가 도와주는 일" icon="chatbubbles" right={<Button small kind="ghost" title={showRole ? '접기' : '펼치기'} onPress={() => setShowRole(!showRole)} />}>
+        {showRole ? (
+          <View style={{ gap: 6 }}>
+            {COACH_DOES.map((d) => (
+              <T key={d} kind="secondary">{`✓ ${d}`}</T>
+            ))}
+            <View style={{ height: 6 }} />
+            {COACH_DOESNT.map((d) => (
+              <T key={d} kind="secondary">{`✕ ${d}`}</T>
+            ))}
+          </View>
+        ) : (
+          <T kind="secondary">운동·식단·수면·습관을 내 기록에 맞춰 코칭해요. 진단이나 처방은 하지 않아요.</T>
+        )}
+      </Card>
 
       <Card>
         <View style={{ gap: Spacing.md }}>

@@ -25,7 +25,7 @@ export default function WorkoutScreen() {
   const lastPlaceId = useStore((s) => s.lastPlaceId);
   const startWorkout = useStore((s) => s.startWorkout);
   const removeWorkout = useStore((s) => s.removeWorkout);
-  const { program, nextIndex } = useProgram();
+  const { program, nextIndex, isCustom } = useProgram();
 
   const [placeId, setPlaceId] = useState<string | null>(null);
   const [dayIndex, setDayIndex] = useState<number | null>(null);
@@ -75,7 +75,10 @@ export default function WorkoutScreen() {
         </Card>
       ) : null}
 
-      <Card title="나의 분할 프로그램" icon="calendar">
+      <Card
+        title={isCustom ? '내가 만든 루틴' : '나의 분할 프로그램 · 자동 추천'}
+        icon="calendar"
+        right={<Button small kind="secondary" title={isCustom ? '루틴 편집' : '직접 정하기'} icon="create-outline" onPress={() => router.push('/program')} />}>
         <T kind="small" style={{ marginBottom: Spacing.sm }}>
           어느 장소에서 하든 이 순서대로 이어집니다. 장소가 바뀌면 같은 부위를 그 곳 기구로 바꿔서 해요.
         </T>

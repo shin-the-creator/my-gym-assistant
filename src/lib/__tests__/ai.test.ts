@@ -54,7 +54,7 @@ describe('Gemini client', () => {
       if (url.includes('flash-lite')) return { status: 429, json: { error: { message: 'quota', status: 'RESOURCE_EXHAUSTED' } } };
       return { status: 200, json: answer('스쿼트 대신 불가리안 스플릿 스쿼트를 하세요.') };
     });
-    const text = await askCoach('무릎이 아파요', '- 남성 31세');
+    const text = await askCoach('무릎이 아파요', '- 남성 31세', '역할: 트레이너');
     expect(text).toContain('불가리안');
     expect(calls.filter((c) => c.url.includes(':generateContent')).map((c) => c.url.match(/models\/([^:]+)/)![1])).toEqual([
       'gemini-3.5-flash-lite',
@@ -64,6 +64,6 @@ describe('Gemini client', () => {
 
   it('explains an invalid key in Korean', async () => {
     mockFetch(() => ({ status: 400, json: { error: { message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT' } } }));
-    await expect(askCoach('안녕', '')).rejects.toThrow('API 키가 올바르지 않아요');
+    await expect(askCoach('안녕', '', '')).rejects.toThrow('API 키가 올바르지 않아요');
   });
 });

@@ -115,6 +115,7 @@ export async function askLocalCoach(
   model: LocalModel,
   question: string,
   context: string,
+  role: string,
   onToken: (textSoFar: string) => void,
   onLoading?: (p: number) => void,
 ): Promise<string> {
@@ -124,7 +125,7 @@ export async function askLocalCoach(
     const result = await llama.completion(
       {
         messages: [
-          { role: 'system', content: localCoachSystemPrompt(context) },
+          { role: 'system', content: localCoachSystemPrompt(context, role) },
           { role: 'user', content: question },
         ],
         n_predict: 600,

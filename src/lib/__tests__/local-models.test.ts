@@ -26,8 +26,9 @@ describe('local Gemma models', () => {
   });
 
   it('puts the user context in a short Korean system prompt', () => {
-    const p = localCoachSystemPrompt('- 남성 31세');
+    const p = localCoachSystemPrompt('- 남성 31세', '역할: 트레이너');
     expect(p).toContain('한국어');
+    expect(p).toContain('역할: 트레이너');
     expect(p).toContain('- 남성 31세');
   });
 });

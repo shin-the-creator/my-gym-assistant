@@ -1,7 +1,7 @@
 // AI 코치에게 넘길 사용자 요약(텍스트)
 
 import { equipmentName } from '@/data/equipment';
-import { getExercise } from '@/data/exercises';
+import { PATTERN_NAMES, getExercise } from '@/data/exercises';
 import type { Place, Profile, WeightEntry, WorkoutLog } from '@/types/models';
 import { ACTIVITY_LABELS, GOAL_LABELS, ageFrom, bmi, macroTargets, navyBodyFat } from './body';
 import type { ProgramDay } from './routine';
@@ -15,7 +15,7 @@ export function coachContext(p: Profile, program: ProgramDay[], places: Place[],
     `- 목표: ${GOAL_LABELS[p.goal]}, 경력: ${p.experience}, 주 ${p.workoutDaysPerWeek}회, 활동량: ${ACTIVITY_LABELS[p.activity]}`,
     `- 기상 ${p.wakeTime}, 운동 시간: ${getSlots(p).map(describeSlot).join(' / ')}${p.avoidFoods.length ? `, 피하는 음식: ${p.avoidFoods.join(', ')}` : ''}`,
     `- 하루 목표: ${t.calories}kcal, 단백질 ${t.proteinG}g, 탄수화물 ${t.carbsG}g, 지방 ${t.fatG}g`,
-    `- 분할 프로그램: ${program.map((d) => `${d.name}(${d.focus})`).join(' → ')}`,
+    `- 분할 루틴(이 순서로 돌아감): ${program.map((d) => `${d.name}[${d.slots.map((sl) => (sl.preferred ? getExercise(sl.preferred)?.name : null) ?? PATTERN_NAMES[sl.pattern]).join(', ')}]`).join(' → ')}`,
     `- 운동 장소:`,
     ...places.map((pl) => `  · ${pl.name}: ${pl.equipment.map((e) => `${equipmentName(e.equipmentId)}${e.maxWeightKg ? `(최대 ${e.maxWeightKg}kg)` : ''}`).join(', ') || '기구 없음'}`),
   ];

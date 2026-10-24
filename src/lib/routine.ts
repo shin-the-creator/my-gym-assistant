@@ -7,12 +7,14 @@
 // 3) 다음에 할 데이는 장소와 상관없이 마지막 운동 기록 다음 데이로 이어진다.
 //    그래서 단지 헬스장과 학교 철봉을 오가도 분할 순서가 꼬이지 않는다.
 
-import { EXERCISES, type Exercise, type Pattern, getExercise } from '@/data/exercises';
+import { EXERCISES, type Exercise, PATTERN_NAMES, type Pattern, getExercise } from '@/data/exercises';
 import type { Experience, Goal, Place, Profile, WorkoutLog } from '@/types/models';
 
 export interface Slot {
   pattern: Pattern;
   role: 'main' | 'accessory' | 'finisher';
+  /** 직접 고른 운동. 그 장소에서 할 수 있으면 이 운동을 먼저 쓴다 */
+  preferred?: string;
 }
 
 export interface ProgramDay {
@@ -37,6 +39,28 @@ const LOWER_B: ProgramDay = { name: '하체 B', focus: '힌지 중심', slots: [
 const PUSH: ProgramDay = { name: '푸시', focus: '가슴 · 어깨 · 삼두', slots: [main('horizontal_push'), main('vertical_push'), acc('chest_fly'), acc('lateral_raise'), acc('triceps')] };
 const PULL: ProgramDay = { name: '풀', focus: '등 · 후면 어깨 · 이두', slots: [main('vertical_pull'), main('horizontal_pull'), acc('rear_delt'), acc('biceps'), acc('core')] };
 const LEGS: ProgramDay = { name: '레그', focus: '하체 전체', slots: [main('squat'), main('hinge'), acc('lunge'), acc('leg_curl'), acc('leg_extension'), acc('calves')] };
+
+/** "수평 밀기 (가슴)" → "가슴" 처럼 괄호 속 부위 이름을 뽑아 한 줄 요약을 만든다 */
+export function programFocus(slots: Slot[]): string {
+  const names = slots
+    .filter((s) => s.pattern !== 'cardio')
+    .map((s) => PATTERN_NAMES[s.pattern].match(/\((.+)\)/)?.[1] ?? PATTERN_NAMES[s.pattern]);
+  return [...new Set(names)].slice(0, 3).join(' · ') || '유산소';
+}
+
+const CHEST: ProgramDay = { name: '가슴', focus: '', slots: [main('horizontal_push'), acc('horizontal_push'), acc('chest_fly'), acc('triceps')] };
+const BACK: ProgramDay = { name: '등', focus: '', slots: [main('vertical_pull'), main('horizontal_pull'), acc('rear_delt'), acc('core')] };
+const SHOULDER: ProgramDay = { name: '어깨', focus: '', slots: [main('vertical_push'), acc('lateral_raise'), acc('rear_delt'), acc('core')] };
+const ARMS: ProgramDay = { name: '팔', focus: '', slots: [acc('biceps'), acc('triceps'), acc('biceps'), acc('triceps')] };
+
+/** 직접 루틴을 만들 때 시작점으로 쓰는 분할 템플릿 */
+export const PROGRAM_PRESETS: { id: string; name: string; days: ProgramDay[] }[] = [
+  { id: 'ppl', name: '미는 날 · 당기는 날 · 하체', days: [{ ...PUSH, name: '미는 날' }, { ...PULL, name: '당기는 날' }, { ...LEGS, name: '하체 날' }] },
+  { id: 'ul', name: '상체 · 하체', days: [UPPER_A, LOWER_A, UPPER_B, LOWER_B] },
+  { id: 'full', name: '전신 A · B · C', days: [FULL_A, FULL_B, FULL_C] },
+  { id: 'bro', name: '부위별 5분할', days: [CHEST, BACK, LEGS, SHOULDER, ARMS].map((d) => ({ ...d, name: d.name === '레그' ? '하체' : d.name })) },
+  { id: 'empty', name: '빈 루틴', days: [{ name: '1일차', focus: '', slots: [] }] },
+].map((p) => ({ ...p, days: p.days.map((d) => ({ ...d, focus: programFocus(d.slots), slots: d.slots.map((x) => ({ ...x })) })) }));
 
 function withSuffix(day: ProgramDay, suffix: string): ProgramDay {
   return { ...day, name: `${day.name} ${suffix}` };
@@ -146,6 +170,11 @@ export function planDay(
     if (override && candidates.some((c) => c.id === override.id)) {
       exercise = override;
       reason = '직접 바꾼 운동';
+    }
+    const preferred = slot.preferred ? getExercise(slot.preferred) : undefined;
+    if (!exercise && preferred && candidates.some((c) => c.id === preferred.id)) {
+      exercise = preferred;
+      reason = '루틴에 직접 정해 둔 운동';
     }
     if (!exercise) {
       const here = lastExerciseFor(slot.pattern, logs, place.id);

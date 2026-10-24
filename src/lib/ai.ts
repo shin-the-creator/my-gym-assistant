@@ -167,12 +167,9 @@ export async function recognizeEquipment(base64: string, mediaType: 'image/jpeg'
   }
 }
 
-export async function askCoach(question: string, context: string): Promise<string> {
-  const system =
-    '당신은 사용자의 개인 헬스케어 트레이너입니다. 한국어로, 친근하지만 근거 있게 답하세요. ' +
-    '아래 사용자 정보와 루틴을 바탕으로 구체적인 숫자(세트·반복·무게·시간·양)를 들어 조언하세요. ' +
-    '통증이나 질환이 의심되면 운동을 멈추고 전문의 상담을 권하세요. 모바일 화면에서 읽기 좋게 짧은 문단과 목록으로 답하고, 마크다운 기호(#, **)는 쓰지 마세요.\n\n' +
-    `사용자 정보:\n${context}`;
+/** role: coachRoleInstruction()이 만든 역할 지시 */
+export async function askCoach(question: string, context: string, role: string): Promise<string> {
+  const system = `${role}\n모바일 화면에서 읽기 좋게 짧은 문단과 목록으로 답하고, 마크다운 기호(#, **)는 쓰지 마.\n\n[사용자 정보]\n${context}`;
   return generate(system, [{ text: question }]);
 }
 
