@@ -24,7 +24,7 @@ export default function GuideScreen() {
       <SectionLabel>알아두면 좋은 것</SectionLabel>
       <ListCard>
         <ListRow marker="refresh-outline" title="탭을 한 번 더 누르면 맨 위로" subtitle="긴 화면에서 빠르게 처음으로 돌아가요" />
-        <ListRow marker="calendar-outline" title="달력에서 지난 날 기록" subtitle="날짜를 누르면 그날 운동·식단·물·체중을 보고 고칠 수 있어요" />
+        <ListRow marker="calendar-outline" title="달력은 스케줄러" subtitle="학원·시험 같은 일정을 넣고 알림을 받아요. 운동 예정일도 보이고, 하루 미루거나 건너뛸 수 있어요" />
         <ListRow marker="chatbubbles-outline" title="AI 코치" subtitle="모델을 한 번 받으면 키 없이 폰 안에서 질문할 수 있어요" />
       </ListCard>
       <T kind="small">모든 기록은 이 기기에만 저장돼요.</T>

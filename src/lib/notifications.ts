@@ -1,10 +1,11 @@
-// 하루 일과표를 매일 반복 알림으로 등록한다(물·식사·취침).
+// 하루 일과표를 매일 반복 알림으로 등록하고(물·식사·취침), 달력 일정 알림을 날짜 알림으로 등록한다.
 
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import type { ScheduleItem } from './schedule';
-import type { Settings } from '@/types/models';
+import { eventReminders } from './scheduler';
+import type { CalendarEvent, Settings } from '@/types/models';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -33,7 +34,7 @@ export async function ensurePermission(): Promise<boolean> {
 }
 
 /** 기존 알림을 모두 지우고 설정에 맞게 다시 등록한다. 등록한 개수를 돌려준다 */
-export async function syncReminders(items: ScheduleItem[], settings: Settings): Promise<number> {
+export async function syncReminders(items: ScheduleItem[], settings: Settings, events: CalendarEvent[] = []): Promise<number> {
   if (Platform.OS === 'web') return 0;
   await Notifications.cancelAllScheduledNotificationsAsync();
   const wanted = items.filter(
@@ -42,8 +43,16 @@ export async function syncReminders(items: ScheduleItem[], settings: Settings): 
       (settings.mealReminders && (i.kind === 'meal' || i.kind === 'snack')) ||
       (settings.sleepReminder && (i.kind === 'winddown' || i.kind === 'sleep')),
   );
-  if (wanted.length === 0) return 0;
+  const eventAlarms = eventReminders(events, new Date());
+  if (wanted.length === 0 && eventAlarms.length === 0) return 0;
   if (!(await ensurePermission())) return 0;
+
+  for (const alarm of eventAlarms) {
+    await Notifications.scheduleNotificationAsync({
+      content: { title: alarm.title, body: alarm.body },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: alarm.at, channelId: 'routine' },
+    });
+  }
 
   for (const item of wanted) {
     const [hour, minute] = item.time.split(':').map(Number);
@@ -55,5 +64,5 @@ export async function syncReminders(items: ScheduleItem[], settings: Settings): 
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute, channelId: 'routine' },
     });
   }
-  return wanted.length;
+  return wanted.length + eventAlarms.length;
 }

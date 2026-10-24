@@ -13,7 +13,9 @@ import { useLayout } from '@/hooks/use-theme';
 import { activeKcalGoal, stepGoal, stepsKcal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
 import { planDay } from '@/lib/routine';
 import type { ScheduleKind } from '@/lib/schedule';
+import { EVENT_KINDS, eventsOn } from '@/lib/scheduler';
 import { estimateMinutes, toExerciseLogs } from '@/lib/session';
+import { dateKey, toMinutes } from '@/lib/time';
 import { formatTimeKo } from '@/lib/workout-slots';
 import { useStore } from '@/store/useStore';
 
@@ -44,6 +46,7 @@ export default function TodayScreen() {
   const profile = useStore((s) => s.profile);
   const places = useStore((s) => s.places);
   const workouts = useStore((s) => s.workouts);
+  const events = useStore((s) => s.events);
   const active = useStore((s) => s.activeWorkout);
   const lastPlaceId = useStore((s) => s.lastPlaceId);
   const addWater = useStore((s) => s.addWater);
@@ -108,7 +111,17 @@ export default function TodayScreen() {
   // 오늘 일정에 잡힌 운동 시각(여러 번일 수 있음)
   const workoutTimes = today.schedule.filter((i) => i.kind === 'workout').map((i) => formatTimeKo(i.time));
   const nowMin = date.getHours() * 60 + date.getMinutes();
-  const upcoming = today.schedule.filter((i) => i.minutes >= nowMin).slice(0, 5);
+  // 하루 일과와 달력에 넣은 오늘 일정(종일 일정은 맨 위)을 시간 순으로 합친다
+  const upcoming = [
+    ...eventsOn(events, dateKey(date))
+      .filter((e) => !e.time || toMinutes(e.time) >= nowMin)
+      .map((e) => ({ key: e.id, minutes: e.time ? toMinutes(e.time) : -1, marker: 'calendar-outline' as IconName, title: e.title, subtitle: EVENT_KINDS[e.kind], value: e.time ?? '종일', id: e.id })),
+    ...today.schedule
+      .filter((i) => i.minutes >= nowMin)
+      .map((i, n) => ({ key: `${i.time}-${n}`, minutes: i.minutes, marker: KIND_ICON[i.kind], title: i.amountMl ? `${i.title} ${i.amountMl}ml` : i.title, subtitle: i.detail, value: i.time, id: undefined })),
+  ]
+    .sort((a, b) => a.minutes - b.minutes)
+    .slice(0, 6);
 
   const start = () => {
     if (active) return router.push('/session');
@@ -205,13 +218,14 @@ export default function TodayScreen() {
         <SectionLabel>남은 일정</SectionLabel>
         <ListCard>
           {upcoming.length === 0 ? <ListRow marker="moon-outline" title="오늘 남은 일정이 없어요" subtitle="푹 주무세요" /> : null}
-          {upcoming.map((item, i) => (
+          {upcoming.map((item) => (
             <ListRow
-              key={`${item.time}-${i}`}
-              marker={KIND_ICON[item.kind]}
-              title={item.amountMl ? `${item.title} ${item.amountMl}ml` : item.title}
-              subtitle={item.detail}
-              value={item.time}
+              key={item.key}
+              marker={item.marker}
+              title={item.title}
+              subtitle={item.subtitle}
+              value={item.value}
+              onPress={item.id ? () => router.push({ pathname: '/event', params: { id: item.id } }) : undefined}
             />
           ))}
         </ListCard>

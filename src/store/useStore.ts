@@ -7,7 +7,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { ProgramDay } from '@/lib/routine';
 import { dateKey } from '@/lib/time';
-import type { ExerciseLog, FoodEntry, Place, PlaceEquipment, Profile, School, SchoolMeal, Settings, WeightEntry, WorkoutLog } from '@/types/models';
+import type { CalendarEvent, ExerciseLog, FoodEntry, Place, PlaceEquipment, Profile, School, SchoolMeal, Settings, WeightEntry, WorkoutAdjust, WorkoutLog } from '@/types/models';
 
 export function newId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -25,6 +25,10 @@ interface State {
   foodLog: FoodEntry[];
   /** 급식을 불러올 학교 */
   school: School | null;
+  /** 달력 일정 */
+  events: CalendarEvent[];
+  /** 예정 운동을 옮기거나 건너뛴 기록 */
+  workoutAdjust: WorkoutAdjust;
   /** 직접 만든 분할 루틴(없으면 내 정보로 자동 추천) */
   customProgram: ProgramDay[] | null;
   /** 날짜별 급식(나이스에서 받아 둔 것) */
@@ -56,6 +60,9 @@ interface State {
   removeFood: (id: string) => void;
   setSchool: (school: School | null) => void;
   setCustomProgram: (program: ProgramDay[] | null) => void;
+  saveEvent: (event: Omit<CalendarEvent, 'id'> & { id?: string }) => void;
+  removeEvent: (id: string) => void;
+  setWorkoutAdjust: (adjust: WorkoutAdjust) => void;
   cacheSchoolMeals: (date: string, meals: SchoolMeal[]) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   resetAll: () => void;
@@ -72,6 +79,8 @@ const initial = {
   school: null,
   schoolMeals: {},
   customProgram: null,
+  events: [],
+  workoutAdjust: {},
   settings: { apiKeyConfigured: false, waterReminders: false, sleepReminder: false, mealReminders: false },
   lastPlaceId: null,
 };
@@ -150,6 +159,15 @@ export const useStore = create<State>()(
       removeFood: (id) => set((s) => ({ foodLog: s.foodLog.filter((f) => f.id !== id) })),
       setSchool: (school) => set({ school, schoolMeals: {} }),
       setCustomProgram: (customProgram) => set({ customProgram }),
+      saveEvent: (event) =>
+        set((s) => {
+          if (event.id && s.events.some((e) => e.id === event.id)) {
+            return { events: s.events.map((e) => (e.id === event.id ? ({ ...event, id: e.id } as CalendarEvent) : e)) };
+          }
+          return { events: [...s.events, { ...event, id: newId() }] };
+        }),
+      removeEvent: (id) => set((s) => ({ events: s.events.filter((e) => e.id !== id) })),
+      setWorkoutAdjust: (workoutAdjust) => set({ workoutAdjust }),
       cacheSchoolMeals: (date, meals) =>
         set((s) => {
           // 최근 60일치만 보관해 저장 공간을 아낀다

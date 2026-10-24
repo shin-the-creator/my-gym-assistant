@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { macroTargets } from '@/lib/body';
 import { buildProgram, nextDayIndex } from '@/lib/routine';
 import { buildDailySchedule, dailyWaterTarget } from '@/lib/schedule';
+import { adjustedWorkoutDay, plannedWorkouts } from '@/lib/scheduler';
 import { getSlots, hasFixedDays, isScheduledWeekday } from '@/lib/workout-slots';
 import { dateKey } from '@/lib/time';
 import { useStore } from '@/store/useStore';
@@ -26,6 +27,22 @@ export function useProgram() {
 export function useIsWorkoutDay(): boolean {
   const profile = useStore((s) => s.profile);
   const workouts = useStore((s) => s.workouts);
+  const adjust = useStore((s) => s.workoutAdjust);
+  const base = useBaseWorkoutDay(profile, workouts);
+  // 달력에서 오늘 운동을 건너뛰었거나 다른 날에서 옮겨 왔으면 반영
+  return useMemo(() => (profile ? adjustedWorkoutDay(base, adjust) : false), [profile, base, adjust]);
+}
+
+/** 오늘부터 to까지의 운동 예정(요일을 정한 운동 시간대 기준) */
+export function usePlannedWorkouts(to: string) {
+  const profile = useStore((s) => s.profile);
+  const workouts = useStore((s) => s.workouts);
+  const adjust = useStore((s) => s.workoutAdjust);
+  const { program, nextIndex } = useProgram();
+  return useMemo(() => (profile ? plannedWorkouts(profile, program, nextIndex, workouts, adjust, to) : {}), [profile, program, nextIndex, workouts, adjust, to]);
+}
+
+function useBaseWorkoutDay(profile: ReturnType<typeof useStore.getState>['profile'], workouts: ReturnType<typeof useStore.getState>['workouts']): boolean {
   return useMemo(() => {
     if (!profile) return false;
     const today = dateKey();

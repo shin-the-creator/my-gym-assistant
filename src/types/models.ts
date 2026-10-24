@@ -142,3 +142,24 @@ export interface SchoolMeal {
   carbs: number;
   fat: number;
 }
+
+export type EventKind = 'exam' | 'study' | 'appointment' | 'other';
+
+/** 달력에 직접 넣는 일정 */
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  kind: EventKind;
+  /** 시작 날짜(반복 일정은 이 날부터) YYYY-MM-DD */
+  date: string;
+  /** "HH:MM" — 없으면 하루 종일 */
+  time?: string;
+  /** 매주 반복할 요일(0=일 … 6=토). 비어 있으면 한 번만 */
+  repeatDays?: number[];
+  /** 몇 분 전에 알릴지. 없으면 알림 없음 */
+  remindMin?: number;
+  memo?: string;
+}
+
+/** 예정된 운동을 옮기거나 건너뛴 기록. key = 원래 날짜 */
+export type WorkoutAdjust = Record<string, { skip?: boolean; movedTo?: string }>;

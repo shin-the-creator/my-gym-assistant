@@ -11,16 +11,17 @@ import { useHydrated, useStore } from '@/store/useStore';
 
 SplashScreen.preventAutoHideAsync();
 
-/** 일과(기상·운동 시간, 운동일 여부)나 알림 설정이 바뀌면 매일 반복 알림을 다시 등록한다 */
+/** 일과(기상·운동 시간, 운동일 여부), 일정, 알림 설정이 바뀌면 알림을 다시 등록한다 */
 function ReminderSync() {
   const today = useToday();
   const settings = useStore((s) => s.settings);
+  const events = useStore((s) => s.events);
   const signature = today ? today.schedule.map((i) => `${i.time}${i.kind}${i.amountMl ?? ''}`).join('|') : '';
   useEffect(() => {
     if (!today) return;
-    syncReminders(today.schedule, settings).catch(() => {});
+    syncReminders(today.schedule, settings, events).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signature, settings.waterReminders, settings.mealReminders, settings.sleepReminder]);
+  }, [signature, events, settings.waterReminders, settings.mealReminders, settings.sleepReminder]);
   return null;
 }
 
@@ -66,6 +67,7 @@ export default function RootLayout() {
         <Stack.Screen name="feedback" options={{ title: '의견 보내기' }} />
         <Stack.Screen name="ai-model" options={{ title: 'AI 코치 엔진' }} />
         <Stack.Screen name="program" options={{ title: '내 루틴 정하기' }} />
+        <Stack.Screen name="event" options={{ title: '일정', presentation: 'modal', animation: 'slide_from_bottom' }} />
       </Stack>
     </ThemeProvider>
     </KeyboardProvider>
