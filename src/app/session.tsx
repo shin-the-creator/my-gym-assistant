@@ -124,10 +124,12 @@ export default function SessionScreen() {
       {restLeft > 0 ? (
         <Card tone="primary">
           <Row>
-            <Icon name="timer-outline" size={26} color={c.primary} />
-            <T kind="big" style={{ flex: 1, color: c.primary }}>
-              휴식 {Math.floor(restLeft / 60)}:{String(restLeft % 60).padStart(2, '0')}
-            </T>
+            <View style={{ flex: 1 }}>
+              <T kind="label">휴식</T>
+              <T kind="big" style={{ fontSize: 40, marginTop: 4 }} numberOfLines={1}>
+                {Math.floor(restLeft / 60)}:{String(restLeft % 60).padStart(2, '0')}
+              </T>
+            </View>
             <Button small kind="secondary" title="+30초" onPress={() => setRestUntil((restUntil ?? Date.now()) + 30000)} />
             <Button small kind="ghost" title="건너뛰기" onPress={() => setRestUntil(null)} />
           </Row>

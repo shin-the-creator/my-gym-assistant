@@ -1,45 +1,32 @@
 import { Platform } from 'react-native';
 
-export const Colors = {
-  light: {
-    text: '#111418',
-    textSecondary: '#5B6470',
-    background: '#F4F6F8',
-    card: '#FFFFFF',
-    border: '#E2E6EA',
-    primary: '#1E6BFF',
-    primaryText: '#FFFFFF',
-    primarySoft: '#E6EEFF',
-    good: '#12A150',
-    goodSoft: '#E3F6EA',
-    warn: '#D97706',
-    warnSoft: '#FDF1DE',
-    danger: '#DC2626',
-    dangerSoft: '#FDE7E7',
-    water: '#0EA5E9',
-    waterSoft: '#E0F4FD',
-  },
-  dark: {
-    text: '#F2F4F7',
-    textSecondary: '#A3ACB8',
-    background: '#0E1114',
-    card: '#181C21',
-    border: '#2A3038',
-    primary: '#5B92FF',
-    primaryText: '#0E1114',
-    primarySoft: '#1B2A47',
-    good: '#3DD68C',
-    goodSoft: '#16301F',
-    warn: '#F5A524',
-    warnSoft: '#35280F',
-    danger: '#F87171',
-    dangerSoft: '#3A1A1A',
-    water: '#38BDF8',
-    waterSoft: '#10293A',
-  },
+// 매트 다크 모노톤. 유색은 삭제 버튼의 위험 표시 하나만 남기고,
+// 진행 상태는 흰색 바, 상태 구분은 밝기 차이로만 표현한다.
+const mono = {
+  text: '#FFFFFF',
+  textSecondary: '#9EA4B0',
+  faint: '#5E636D',
+  background: '#121214',
+  card: '#1A1A1E',
+  border: '#2A2A31',
+  track: '#2C2C33',
+  primary: '#FFFFFF',
+  primaryText: '#121214',
+  primarySoft: '#232328',
+  good: '#FFFFFF',
+  goodSoft: '#232328',
+  warn: '#C9CDD4',
+  warnSoft: '#232328',
+  danger: '#E5484D',
+  dangerSoft: '#2A1D1F',
+  water: '#FFFFFF',
+  waterSoft: '#232328',
 } as const;
 
-export type Palette = { [K in keyof typeof Colors.light]: string };
+// 앱은 항상 다크 테마로 그린다(시스템 설정과 무관)
+export const Colors = { light: mono, dark: mono } as const;
+
+export type Palette = { [K in keyof typeof mono]: string };
 
 export const Spacing = {
   xs: 4,

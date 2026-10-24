@@ -1,4 +1,4 @@
-// 공통 UI 컴포넌트
+// 공통 UI 컴포넌트 — 매트 다크 · 모노톤 · 큰 숫자 · 얇은 경계선
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type ComponentProps, type ReactNode, Children, useState } from 'react';
@@ -21,11 +21,24 @@ import { useLayout, useTheme } from '@/hooks/use-theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
-export function Screen({ children, scroll = true, edges = ['top'] }: { children: ReactNode; scroll?: boolean; edges?: ('top' | 'bottom')[] }) {
+const NUM: TextStyle = { fontVariant: ['tabular-nums'], letterSpacing: -0.5 };
+
+/** 화면 틀. footer를 주면 하단에 고정된 액션 영역이 생긴다 */
+export function Screen({
+  children,
+  scroll = true,
+  edges = ['top'],
+  footer,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  edges?: ('top' | 'bottom')[];
+  footer?: ReactNode;
+}) {
   const c = useTheme();
   const { isTablet } = useLayout();
   const pad = isTablet ? Spacing.xl : Spacing.lg;
-  const inner = <View style={[styles.inner, { padding: pad, gap: Spacing.lg }]}>{children}</View>;
+  const inner = <View style={[styles.inner, { paddingHorizontal: pad, paddingTop: pad, gap: Spacing.xl }]}>{children}</View>;
   return (
     <SafeAreaView edges={edges} style={{ flex: 1, backgroundColor: c.background }}>
       {scroll ? (
@@ -35,17 +48,24 @@ export function Screen({ children, scroll = true, edges = ['top'] }: { children:
       ) : (
         inner
       )}
+      {footer ? (
+        <View style={{ borderTopWidth: 1, borderColor: c.border, backgroundColor: c.background, paddingHorizontal: pad, paddingVertical: Spacing.md }}>
+          <View style={styles.inner}>{footer}</View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
 
-export function Title({ children, subtitle, right }: { children: ReactNode; subtitle?: string; right?: ReactNode }) {
+/** 상단 영역: 작은 회색 보조 문구 + 차분한 큰 제목 */
+export function Title({ children, subtitle, eyebrow, right }: { children: ReactNode; subtitle?: string; eyebrow?: string; right?: ReactNode }) {
   const c = useTheme();
   return (
-    <View style={styles.row}>
-      <View style={{ flex: 1 }}>
+    <View style={[styles.row, { alignItems: 'flex-start' }]}>
+      <View style={{ flex: 1, gap: 6 }}>
+        {eyebrow ? <Text style={{ color: c.textSecondary, fontSize: 15, fontWeight: '500' }}>{eyebrow}</Text> : null}
         <Text style={[styles.title, { color: c.text }]}>{children}</Text>
-        {subtitle ? <Text style={{ color: c.textSecondary, marginTop: 2 }}>{subtitle}</Text> : null}
+        {subtitle ? <Text style={{ color: c.textSecondary, fontSize: 14 }}>{subtitle}</Text> : null}
       </View>
       {right}
     </View>
@@ -59,10 +79,10 @@ export function T({ children, kind = 'body', style, numberOfLines }: { children:
   const map: Record<TextKind, TextStyle> = {
     body: { fontSize: 15, color: c.text, lineHeight: 21 },
     secondary: { fontSize: 14, color: c.textSecondary, lineHeight: 20 },
-    small: { fontSize: 12, color: c.textSecondary },
-    heading: { fontSize: 17, fontWeight: '700', color: c.text },
-    label: { fontSize: 13, fontWeight: '600', color: c.textSecondary },
-    big: { fontSize: 26, fontWeight: '800', color: c.text },
+    small: { fontSize: 12, color: c.textSecondary, lineHeight: 17 },
+    heading: { fontSize: 17, fontWeight: '600', color: c.text },
+    label: { fontSize: 11, fontWeight: '600', color: c.textSecondary, letterSpacing: 0.8, textTransform: 'uppercase' },
+    big: { fontSize: 30, fontWeight: '700', color: c.text, ...NUM },
   };
   return (
     <Text style={[map[kind], style]} numberOfLines={numberOfLines}>
@@ -71,17 +91,29 @@ export function T({ children, kind = 'body', style, numberOfLines }: { children:
   );
 }
 
+/** 카드 바깥 위에 붙는 작은 섹션 제목 */
+export function SectionLabel({ children, right }: { children: string; right?: ReactNode }) {
+  return (
+    <View style={[styles.row, { paddingHorizontal: 4, marginBottom: Spacing.sm }]}>
+      <T kind="label" style={{ flex: 1 }}>
+        {children}
+      </T>
+      {typeof right === 'string' ? <T kind="small" style={NUM}>{right}</T> : right}
+    </View>
+  );
+}
+
 export function Card({ children, title, icon, right, style, tone }: { children?: ReactNode; title?: string; icon?: IconName; right?: ReactNode; style?: ViewStyle; tone?: 'primary' }) {
   const c = useTheme();
   return (
-    <View style={[styles.card, { backgroundColor: tone === 'primary' ? c.primarySoft : c.card, borderColor: c.border }, style]}>
+    <View style={[styles.card, { backgroundColor: c.card, borderColor: tone === 'primary' ? c.textSecondary : c.border }, style]}>
       {title ? (
-        <View style={[styles.row, { marginBottom: Spacing.md }]}>
-          {icon ? <Ionicons name={icon} size={18} color={c.primary} style={{ marginRight: 6 }} /> : null}
-          <T kind="heading" style={{ flex: 1 }}>
+        <View style={[styles.row, { marginBottom: Spacing.md, gap: 8 }]}>
+          {icon ? <Ionicons name={icon} size={15} color={c.textSecondary} /> : null}
+          <T kind="label" style={{ flex: 1 }}>
             {title}
           </T>
-          {right}
+          {typeof right === 'string' ? <T kind="small">{right}</T> : right}
         </View>
       ) : null}
       {children}
@@ -90,20 +122,20 @@ export function Card({ children, title, icon, right, style, tone }: { children?:
 }
 
 /** 아이패드에서는 여러 열, 폰에서는 한 열 */
-export function Grid({ children, min }: { children: ReactNode; min?: number }) {
+export function Grid({ children, min, gap = Spacing.md }: { children: ReactNode; min?: number; gap?: number }) {
   const { columns } = useLayout();
   const cols = Math.min(columns, min ?? columns);
   const items = Children.toArray(children).filter(Boolean);
-  if (cols === 1) return <View style={{ gap: Spacing.lg }}>{items}</View>;
+  if (cols === 1) return <View style={{ gap }}>{items}</View>;
   const rows: ReactNode[][] = [];
   items.forEach((child, i) => {
     if (i % cols === 0) rows.push([]);
     rows[rows.length - 1].push(child);
   });
   return (
-    <View style={{ gap: Spacing.lg }}>
+    <View style={{ gap }}>
       {rows.map((row, r) => (
-        <View key={r} style={{ flexDirection: 'row', gap: Spacing.lg, alignItems: 'stretch' }}>
+        <View key={r} style={{ flexDirection: 'row', gap, alignItems: 'stretch' }}>
           {row.map((child, i) => (
             <View key={i} style={{ flex: 1 }}>
               {child}
@@ -140,20 +172,29 @@ export function Button({
   style?: ViewStyle;
 }) {
   const c = useTheme();
-  const bg = { primary: c.primary, secondary: c.primarySoft, ghost: 'transparent', danger: c.dangerSoft }[kind];
-  const fg = { primary: c.primaryText, secondary: c.primary, ghost: c.primary, danger: c.danger }[kind];
+  // primary: 흰 면 / secondary: 얇은 테두리 / ghost: 글자만 / danger: 붉은 글자 + 테두리
+  const bg = { primary: c.primary, secondary: 'transparent', ghost: 'transparent', danger: 'transparent' }[kind];
+  const fg = { primary: c.primaryText, secondary: c.text, ghost: c.textSecondary, danger: c.danger }[kind];
+  const border = { primary: c.primary, secondary: c.border, ghost: 'transparent', danger: c.dangerSoft }[kind];
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={title || undefined}
       onPress={onPress}
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: bg, opacity: disabled ? 0.45 : pressed ? 0.75 : 1, paddingVertical: small ? 7 : 12, paddingHorizontal: small ? 12 : 16 },
+        {
+          backgroundColor: bg,
+          borderColor: border,
+          opacity: disabled ? 0.3 : pressed ? 0.7 : 1,
+          minHeight: small ? 34 : 52,
+          paddingHorizontal: small ? 12 : 20,
+        },
         style,
       ]}>
-      {loading ? <ActivityIndicator color={fg} size="small" /> : icon ? <Ionicons name={icon} size={small ? 15 : 18} color={fg} /> : null}
-      <Text style={{ color: fg, fontWeight: '700', fontSize: small ? 13 : 15 }}>{title}</Text>
+      {loading ? <ActivityIndicator color={fg} size="small" /> : icon ? <Ionicons name={icon} size={small ? 15 : 17} color={fg} /> : null}
+      {title ? <Text style={{ color: fg, fontWeight: '600', fontSize: small ? 13 : 17 }}>{title}</Text> : null}
     </Pressable>
   );
 }
@@ -167,10 +208,10 @@ export function Chip({ label, selected, onPress, icon }: { label: string; select
       accessibilityState={{ selected }}
       style={({ pressed }) => [
         styles.chip,
-        { backgroundColor: selected ? c.primary : c.card, borderColor: selected ? c.primary : c.border, opacity: pressed ? 0.7 : 1 },
+        { backgroundColor: selected ? c.primary : 'transparent', borderColor: selected ? c.primary : c.border, opacity: pressed ? 0.7 : 1 },
       ]}>
-      {icon ? <Ionicons name={icon} size={14} color={selected ? c.primaryText : c.textSecondary} /> : null}
-      <Text style={{ color: selected ? c.primaryText : c.text, fontSize: 14, fontWeight: selected ? '700' : '500' }}>{label}</Text>
+      {icon ? <Ionicons name={icon} size={13} color={selected ? c.primaryText : c.textSecondary} /> : null}
+      <Text style={{ color: selected ? c.primaryText : c.text, fontSize: 14, fontWeight: selected ? '600' : '400' }}>{label}</Text>
     </Pressable>
   );
 }
@@ -182,10 +223,15 @@ export function ChipRow({ children }: { children: ReactNode }) {
 export function Field({ label, hint, suffix, ...props }: TextInputProps & { label: string; hint?: string; suffix?: string }) {
   const c = useTheme();
   return (
-    <View style={{ gap: 4, flex: 1, minWidth: 120 }}>
+    <View style={{ gap: 6, flex: 1, minWidth: 120 }}>
       <T kind="label">{label}</T>
-      <View style={[styles.input, { borderColor: c.border, backgroundColor: c.card }]}>
-        <TextInput placeholderTextColor={c.textSecondary} style={{ flex: 1, minWidth: 0, width: '100%', color: c.text, fontSize: 16, paddingVertical: 10 }} {...props} />
+      <View style={[styles.input, { borderColor: c.border, backgroundColor: c.background }]}>
+        <TextInput
+          placeholderTextColor={c.faint}
+          selectionColor={c.text}
+          style={{ flex: 1, minWidth: 0, width: '100%', color: c.text, fontSize: 16, paddingVertical: 12 }}
+          {...props}
+        />
         {suffix ? <T kind="secondary">{suffix}</T> : null}
       </View>
       {hint ? <T kind="small">{hint}</T> : null}
@@ -206,17 +252,22 @@ export function Row({ children, gap = Spacing.md, style, wrap }: { children: Rea
   return <View style={[{ flexDirection: 'row', alignItems: 'center', gap, flexWrap: wrap ? 'wrap' : 'nowrap' }, style]}>{children}</View>;
 }
 
+/** 작은 숫자 타일 */
 export function Stat({ label, value, unit, sub, tone }: { label: string; value: string; unit?: string; sub?: string; tone?: 'good' | 'warn' | 'info' }) {
   const c = useTheme();
-  const color = tone === 'good' ? c.good : tone === 'warn' ? c.warn : c.text;
   return (
     <View style={[styles.stat, { backgroundColor: c.card, borderColor: c.border }]}>
-      <T kind="label">{label}</T>
-      <Text style={{ fontSize: 24, fontWeight: '800', color, marginTop: 4 }}>
-        {value}
-        {unit ? <Text style={{ fontSize: 14, fontWeight: '600', color: c.textSecondary }}> {unit}</Text> : null}
+      <View style={styles.row}>
+        <T kind="label" style={{ flex: 1 }}>
+          {label}
+        </T>
+        {tone === 'warn' ? <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.warn }} /> : null}
+      </View>
+      <Text style={{ marginTop: 10 }}>
+        <Text style={[{ fontSize: 30, fontWeight: '700', color: c.text }, NUM]}>{value}</Text>
+        {unit ? <Text style={{ fontSize: 14, fontWeight: '500', color: c.faint }}> {unit}</Text> : null}
       </Text>
-      {sub ? <T kind="small" style={{ marginTop: 2 }}>{sub}</T> : null}
+      {sub ? <T kind="small" style={{ marginTop: 4 }}>{sub}</T> : null}
     </View>
   );
 }
@@ -225,24 +276,72 @@ export function StatRow({ children }: { children: ReactNode }) {
   return <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md }}>{children}</View>;
 }
 
-export function Progress({ value, color }: { value: number; color?: string }) {
+/** 큰 숫자 + 목표 대비 흰색 게이지. 대시보드의 핵심 수치용 */
+export function Metric({
+  label,
+  value,
+  unit,
+  goal,
+  goalText,
+  size = 'md',
+  footnote,
+}: {
+  label: string;
+  value: number | null;
+  unit: string;
+  goal: number;
+  goalText?: string;
+  size?: 'md' | 'lg';
+  footnote?: string;
+}) {
   const c = useTheme();
-  const pct = Math.max(0, Math.min(1, value));
+  const big = size === 'lg';
+  const v = value ?? 0;
+  const pct = goal > 0 ? Math.min(1, v / goal) : 0;
   return (
-    <View style={{ height: 10, borderRadius: Radius.pill, backgroundColor: c.border, overflow: 'hidden' }}>
-      <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: color ?? c.primary, borderRadius: Radius.pill }} />
+    <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, padding: big ? Spacing.xl : 20, gap: 16 }]}>
+      <View style={styles.row}>
+        <T kind="label" style={{ flex: 1 }}>
+          {label}
+        </T>
+        <Text style={[{ color: c.textSecondary, fontSize: 13, fontWeight: '500' }, NUM]}>{value === null ? '' : `${Math.round(pct * 100)}%`}</Text>
+      </View>
+      <Text numberOfLines={1} adjustsFontSizeToFit>
+        <Text style={[{ color: value === null ? c.faint : c.text, fontSize: big ? 64 : 40, fontWeight: '700', letterSpacing: big ? -2 : -1 }, NUM]}>
+          {value === null ? '--' : Math.round(v).toLocaleString('ko-KR')}
+        </Text>
+        <Text style={{ color: c.faint, fontSize: big ? 18 : 15, fontWeight: '500' }}> {unit}</Text>
+      </Text>
+      <View style={{ gap: 8 }}>
+        <Progress value={pct} />
+        <T kind="small" style={NUM}>
+          {footnote ?? goalText ?? `목표 ${goal.toLocaleString('ko-KR')} ${unit} · 남은 ${Math.max(0, Math.round(goal - v)).toLocaleString('ko-KR')}`}
+        </T>
+      </View>
     </View>
   );
 }
 
+export function Progress({ value, color }: { value: number; color?: string }) {
+  const c = useTheme();
+  const pct = Math.max(0, Math.min(1, value));
+  return (
+    <View
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}
+      style={{ height: 4, borderRadius: Radius.pill, backgroundColor: c.track, overflow: 'hidden' }}>
+      <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: color ?? c.text, borderRadius: Radius.pill }} />
+    </View>
+  );
+}
+
+/** 안내 문구. 색 대신 아이콘 모양으로 성격을 구분한다 */
 export function Notice({ tone = 'info', children, icon }: { tone?: 'good' | 'info' | 'warn'; children: ReactNode; icon?: IconName }) {
   const c = useTheme();
-  const bg = tone === 'good' ? c.goodSoft : tone === 'warn' ? c.warnSoft : c.primarySoft;
-  const fg = tone === 'good' ? c.good : tone === 'warn' ? c.warn : c.primary;
-  const name: IconName = icon ?? (tone === 'good' ? 'checkmark-circle' : tone === 'warn' ? 'alert-circle' : 'information-circle');
+  const name: IconName = icon ?? (tone === 'good' ? 'checkmark-circle-outline' : tone === 'warn' ? 'alert-circle-outline' : 'information-circle-outline');
   return (
-    <View style={[styles.notice, { backgroundColor: bg }]}>
-      <Ionicons name={name} size={18} color={fg} style={{ marginTop: 1 }} />
+    <View style={[styles.notice, { borderColor: tone === 'warn' ? c.textSecondary : c.border }]}>
+      <Ionicons name={name} size={17} color={tone === 'info' ? c.textSecondary : c.text} style={{ marginTop: 2 }} />
       <T style={{ flex: 1 }}>{children}</T>
     </View>
   );
@@ -252,7 +351,7 @@ export function Empty({ icon, title, body, action }: { icon: IconName; title: st
   const c = useTheme();
   return (
     <View style={{ alignItems: 'center', padding: Spacing.xl, gap: Spacing.sm }}>
-      <Ionicons name={icon} size={40} color={c.textSecondary} />
+      <Ionicons name={icon} size={36} color={c.faint} />
       <T kind="heading">{title}</T>
       {body ? <T kind="secondary" style={{ textAlign: 'center' }}>{body}</T> : null}
       {action}
@@ -260,22 +359,100 @@ export function Empty({ icon, title, body, action }: { icon: IconName; title: st
   );
 }
 
-export function ListItem({ title, subtitle, icon, right, onPress }: { title: string; subtitle?: string; icon?: IconName; right?: ReactNode; onPress?: () => void }) {
+/** 얇은 구분선으로 나뉜 목록 카드 */
+export function ListCard({ children }: { children: ReactNode }) {
   const c = useTheme();
+  const items = Children.toArray(children).filter(Boolean);
   return (
-    <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.listItem, { borderColor: c.border, opacity: pressed ? 0.7 : 1 }]}>
-      {icon ? (
-        <View style={[styles.iconBubble, { backgroundColor: c.primarySoft }]}>
-          <Ionicons name={icon} size={18} color={c.primary} />
+    <View style={[styles.listCard, { backgroundColor: c.card, borderColor: c.border }]}>
+      {items.map((child, i) => (
+        <View key={i} style={i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderColor: c.border } : undefined}>
+          {child}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * 목록 한 줄. marker로 순서 번호/완료 체크를 왼쪽 원 안에 표시하고,
+ * value(오른쪽 숫자)와 caption(그 아래 상태)을 정렬해 보여 준다
+ */
+export function ListRow({
+  title,
+  subtitle,
+  marker,
+  state = 'idle',
+  value,
+  unit,
+  caption,
+  onPress,
+  right,
+}: {
+  title: string;
+  subtitle?: string;
+  marker?: string | IconName;
+  state?: 'done' | 'current' | 'idle';
+  value?: string;
+  unit?: string;
+  caption?: string;
+  onPress?: () => void;
+  right?: ReactNode;
+}) {
+  const c = useTheme();
+  const done = state === 'done';
+  const isIcon = typeof marker === 'string' && marker.length > 2;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      style={({ pressed }) => [styles.listRow, { opacity: pressed ? 0.6 : 1 }]}>
+      {marker !== undefined ? (
+        <View
+          style={[
+            styles.marker,
+            {
+              borderColor: done || state === 'current' ? c.text : c.border,
+              backgroundColor: done ? c.text : 'transparent',
+            },
+          ]}>
+          {done ? (
+            <Ionicons name="checkmark" size={14} color={c.primaryText} />
+          ) : isIcon ? (
+            <Ionicons name={marker as IconName} size={14} color={state === 'current' ? c.text : c.textSecondary} />
+          ) : (
+            <Text style={[{ fontSize: 12, fontWeight: '600', color: state === 'current' ? c.text : c.textSecondary }, NUM]}>{marker}</Text>
+          )}
         </View>
       ) : null}
-      <View style={{ flex: 1 }}>
-        <T style={{ fontWeight: '600' }}>{title}</T>
-        {subtitle ? <T kind="small" style={{ marginTop: 2 }}>{subtitle}</T> : null}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text numberOfLines={1} style={{ fontSize: 16, fontWeight: '600', color: done ? c.faint : c.text }}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text numberOfLines={2} style={{ fontSize: 13, color: done ? c.faint : c.textSecondary, marginTop: 2 }}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
-      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={c.textSecondary} /> : null)}
+      {value !== undefined ? (
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text>
+            <Text style={[{ fontSize: 17, fontWeight: '600', color: done ? c.faint : c.text }, NUM]}>{value}</Text>
+            {unit ? <Text style={{ fontSize: 12, color: c.faint }}>{unit}</Text> : null}
+          </Text>
+          {caption ? <Text style={{ fontSize: 11, color: c.faint, marginTop: 2 }}>{caption}</Text> : null}
+        </View>
+      ) : null}
+      {right ?? (onPress && value === undefined ? <Ionicons name="chevron-forward" size={16} color={c.faint} /> : null)}
     </Pressable>
   );
+}
+
+/** 이전 화면들에서 쓰던 단순 목록 줄 */
+export function ListItem({ title, subtitle, icon, right, onPress }: { title: string; subtitle?: string; icon?: IconName; right?: ReactNode; onPress?: () => void }) {
+  return <ListRow title={title} subtitle={subtitle} marker={icon} right={right} onPress={onPress} />;
 }
 
 export function Icon({ name, size = 18, color }: { name: IconName; size?: number; color?: string }) {
@@ -286,13 +463,14 @@ export function Icon({ name, size = 18, color }: { name: IconName; size?: number
 const styles = StyleSheet.create({
   inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   row: { flexDirection: 'row', alignItems: 'center' },
-  title: { fontSize: 28, fontWeight: '800' },
-  card: { borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.lg },
-  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: Radius.md },
+  title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, lineHeight: 34 },
+  card: { borderRadius: Radius.lg, borderWidth: 1, padding: 20 },
+  button: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: Radius.md, borderWidth: 1 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 7, paddingHorizontal: 12, borderRadius: Radius.pill, borderWidth: 1 },
-  input: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: 12, gap: 6 },
-  stat: { flexGrow: 1, flexBasis: 140, borderRadius: Radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: Spacing.lg },
-  notice: { flexDirection: 'row', gap: 8, padding: Spacing.md, borderRadius: Radius.md },
-  listItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, paddingVertical: Spacing.md, borderBottomWidth: StyleSheet.hairlineWidth },
-  iconBubble: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  input: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: 14, gap: 6 },
+  stat: { flexGrow: 1, flexBasis: 140, borderRadius: Radius.lg, borderWidth: 1, padding: 18 },
+  notice: { flexDirection: 'row', gap: 10, padding: Spacing.md, borderRadius: Radius.md, borderWidth: 1 },
+  listCard: { borderRadius: Radius.lg, borderWidth: 1, overflow: 'hidden' },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, paddingVertical: 14 },
+  marker: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

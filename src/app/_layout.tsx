@@ -1,8 +1,7 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 
 import { useToday } from '@/hooks/use-plan';
 import { useTheme } from '@/hooks/use-theme';
@@ -25,7 +24,6 @@ function ReminderSync() {
 }
 
 export default function RootLayout() {
-  const scheme = useColorScheme();
   const c = useTheme();
   const hydrated = useHydrated();
 
@@ -35,12 +33,21 @@ export default function RootLayout() {
 
   if (!hydrated) return null;
 
-  const base = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  // 앱 전체를 매트 다크 테마로 고정한다
+  const base = DarkTheme;
   return (
     <ThemeProvider value={{ ...base, colors: { ...base.colors, primary: c.primary, background: c.background, card: c.card, text: c.text, border: c.border } }}>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
       <ReminderSync />
-      <Stack screenOptions={{ headerBackButtonDisplayMode: 'minimal', contentStyle: { backgroundColor: c.background } }}>
+      <Stack
+        screenOptions={{
+          headerBackButtonDisplayMode: 'minimal',
+          headerStyle: { backgroundColor: c.background },
+          headerTintColor: c.text,
+          headerTitleStyle: { fontWeight: '600', fontSize: 17 },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: c.background },
+        }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="profile" options={{ title: '내 정보', presentation: 'modal' }} />
         <Stack.Screen name="place/new" options={{ title: '장소 추가', presentation: 'modal' }} />

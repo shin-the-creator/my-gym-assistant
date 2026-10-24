@@ -22,13 +22,15 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: c.primary,
-        tabBarInactiveTintColor: c.textSecondary,
-        tabBarStyle: { backgroundColor: c.card, borderColor: c.border, ...(sidebar ? { width: landscape ? 220 : 96, minWidth: landscape ? 220 : 96 } : {}) },
+        tabBarActiveTintColor: c.text,
+        tabBarInactiveTintColor: c.faint,
+        tabBarActiveBackgroundColor: sidebar ? c.primarySoft : 'transparent',
+        tabBarStyle: { backgroundColor: c.background, borderColor: c.border, ...(sidebar ? { width: landscape ? 220 : 96, minWidth: landscape ? 220 : 96 } : {}) },
         tabBarPosition: sidebar ? 'left' : 'bottom',
         tabBarVariant: sidebar ? 'material' : 'uikit',
         tabBarLabelPosition: sidebar && landscape ? 'beside-icon' : 'below-icon',
-        tabBarLabelStyle: { fontSize: sidebar ? 14 : 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: sidebar ? 14 : 10, fontWeight: '600' },
+        sceneStyle: { backgroundColor: c.background },
       }}>
       {TABS.map((t) => (
         <Tabs.Screen

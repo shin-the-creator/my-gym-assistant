@@ -1,14 +1,22 @@
-// 오늘: 오늘의 운동, 물 마시기, 하루 일정 한눈에 보기
+// 오늘: 차분한 상단 문구 → 핵심 수치(칼로리·시간·걸음) → 오늘의 루틴 → 하단 운동 시작 버튼
 
 import { router } from 'expo-router';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { Button, Card, Empty, Grid, Icon, type IconName, Notice, Progress, Row, Screen, T, Title } from '@/components/ui';
+import { Button, Card, Empty, Icon, type IconName, ListCard, ListRow, Metric, Row, Screen, SectionLabel, T, Title } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { PATTERN_NAMES } from '@/data/exercises';
 import { useProgram, useToday } from '@/hooks/use-plan';
-import { useTheme } from '@/hooks/use-theme';
+import { useTodaySteps } from '@/hooks/use-steps';
+import { useLayout } from '@/hooks/use-theme';
+import { activeKcalGoal, stepGoal, stepsKcal, workoutKcal, workoutMinutesOn } from '@/lib/activity';
+import { planDay } from '@/lib/routine';
 import type { ScheduleKind } from '@/lib/schedule';
+import { estimateMinutes, toExerciseLogs } from '@/lib/session';
 import { useStore } from '@/store/useStore';
+
+const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
 const KIND_ICON: Record<ScheduleKind, IconName> = {
   wake: 'sunny-outline',
@@ -20,142 +28,232 @@ const KIND_ICON: Record<ScheduleKind, IconName> = {
   sleep: 'bed-outline',
 };
 
+/** 운동 중일 때 수치가 실시간으로 오르도록 30초마다 다시 그린다 */
+function useNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, [active]);
+  return now;
+}
+
 export default function TodayScreen() {
-  const c = useTheme();
   const profile = useStore((s) => s.profile);
   const places = useStore((s) => s.places);
+  const workouts = useStore((s) => s.workouts);
   const active = useStore((s) => s.activeWorkout);
   const lastPlaceId = useStore((s) => s.lastPlaceId);
   const addWater = useStore((s) => s.addWater);
+  const startWorkout = useStore((s) => s.startWorkout);
   const today = useToday();
   const { program, nextIndex } = useProgram();
+  const steps = useTodaySteps();
+  const now = useNow(!!active);
+  const { columns } = useLayout();
+
+  const place = places.find((p) => p.id === lastPlaceId) ?? places[0];
+  const day = program[nextIndex];
+  const plan = useMemo(() => (profile && place && day ? planDay(day, place, profile, workouts) : []), [profile, place, day, workouts]);
+
+  const date = new Date(now);
+  const dateText = `${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[date.getDay()]}`;
 
   const settingsButton = (
-    <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityLabel="설정">
-      <Icon name="settings-outline" size={24} />
+    <Pressable onPress={() => router.push('/settings')} hitSlop={12} accessibilityLabel="설정" style={{ paddingTop: 2 }}>
+      <Icon name="settings-outline" size={22} />
     </Pressable>
   );
 
   if (!profile || !today) {
     return (
       <Screen>
-        <Title right={settingsButton}>나의 헬스 트레이너</Title>
+        <Title eyebrow={dateText} right={settingsButton}>
+          내 정보를 알려 주세요.
+        </Title>
         <Card>
           <Empty
             icon="person-circle-outline"
-            title="먼저 내 정보를 알려 주세요"
-            body="키·몸무게·목표·기상 시간을 입력하면 몸 상태 분석, 운동 루틴, 식단, 물·수면 일정을 만들어 드려요."
-            action={<Button title="내 정보 입력하기" icon="create-outline" onPress={() => router.push('/profile')} style={{ marginTop: Spacing.md }} />}
+            title="몸 상태에 맞춘 하루를 준비해요"
+            body="키·몸무게·목표·기상 시간을 입력하면 운동 루틴, 식단, 물·수면 일정을 만들어 드려요."
+            action={<Button title="내 정보 입력하기" onPress={() => router.push('/profile')} style={{ marginTop: Spacing.md, alignSelf: 'stretch' }} />}
           />
         </Card>
       </Screen>
     );
   }
 
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-  const upcoming = today.schedule.filter((i) => i.minutes >= nowMin).slice(0, 6);
-  const nextDay = program[nextIndex];
-  const lastPlace = places.find((p) => p.id === lastPlaceId) ?? places[0];
-  const waterPct = today.waterDrunk / today.waterTarget;
-  const hour = new Date().getHours();
-  const greet = hour < 11 ? '좋은 아침이에요' : hour < 17 ? '좋은 오후예요' : '오늘 하루도 수고했어요';
+  // 핵심 수치
+  const minutes = workoutMinutesOn(today.today, workouts, active, now);
+  const kcal = workoutKcal(minutes, profile.weightKg) + stepsKcal(steps ?? 0, profile.weightKg);
+  const planned = plan.length ? estimateMinutes(plan) : 45;
+  const minuteGoal = today.workoutDay ? planned : 30;
+  const doneToday = workouts.some((w) => w.date === today.today);
+
+  // 오늘의 루틴 상태: 진행 중 기록 또는 오늘 마친 기록에 들어 있으면 완료
+  const doneIds = new Set<string>([
+    ...workouts.filter((w) => w.date === today.today).flatMap((w) => w.exercises.map((e) => e.exerciseId)),
+    ...(active?.exercises.filter((e) => e.sets.length > 0 && e.sets.every((s) => s.done)).map((e) => e.exerciseId) ?? []),
+  ]);
+  const rows = plan.filter((p) => p.exercise && p.prescription);
+  const firstPending = rows.findIndex((p) => !doneIds.has(p.exercise!.id));
+  const doneCount = rows.filter((p) => doneIds.has(p.exercise!.id)).length;
+  const warmedUp = doneToday || doneCount > 0 || !!active;
+
+  const headline = active
+    ? `${active.dayName} 운동이 진행 중입니다.`
+    : doneToday
+      ? '오늘 운동을 마쳤어요.'
+      : today.workoutDay
+        ? '오늘 운동을 시작하세요.'
+        : '오늘은 회복하는 날이에요.';
+
+  const nowMin = date.getHours() * 60 + date.getMinutes();
+  const upcoming = today.schedule.filter((i) => i.minutes >= nowMin).slice(0, 5);
+
+  const start = () => {
+    if (active) return router.push('/session');
+    if (!place) return router.push('/place/new');
+    if (!day) return;
+    startWorkout({ placeId: place.id, dayIndex: nextIndex, dayName: day.name, exercises: toExerciseLogs(plan, place, workouts) });
+    router.push('/session');
+  };
+
+  const actionTitle = active ? '이어서 기록하기' : !place ? '운동 장소 등록하기' : doneToday || !today.workoutDay ? '그래도 운동하기' : '운동 시작';
+
+  const stats = (
+    <View style={{ gap: Spacing.md }}>
+      <Metric label="활동 칼로리" value={kcal} unit="kcal" goal={activeKcalGoal(profile.goal)} size="lg" />
+      <Row gap={Spacing.md} style={{ alignItems: 'stretch' }}>
+        <View style={{ flex: 1 }}>
+          <Metric label="운동 시간" value={minutes} unit="분" goal={minuteGoal} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Metric
+            label="걸음 수"
+            value={steps}
+            unit="걸음"
+            goal={stepGoal(profile.goal)}
+            footnote={steps === null ? '이 기기에선 측정 불가' : undefined}
+          />
+        </View>
+      </Row>
+      <View style={{ gap: Spacing.sm }}>
+        <Metric label="물" value={today.waterDrunk} unit="ml" goal={today.waterTarget} />
+        <Row gap={Spacing.sm}>
+          <Button small kind="secondary" title="+ 250ml" onPress={() => addWater(250)} style={{ flex: 1 }} />
+          <Button small kind="secondary" title="+ 500ml" onPress={() => addWater(500)} style={{ flex: 1 }} />
+          <Button small kind="ghost" title="되돌리기" onPress={() => addWater(-250)} />
+        </Row>
+      </View>
+    </View>
+  );
+
+  const routine = (
+    <View style={{ gap: Spacing.xl }}>
+      <View>
+        <SectionLabel right={rows.length ? `${doneCount}/${rows.length} 완료 · 약 ${planned}분` : undefined}>
+          {day ? `오늘의 루틴 · ${day.name}` : '오늘의 루틴'}
+        </SectionLabel>
+        {!place ? (
+          <ListCard>
+            <ListRow marker="add" title="운동 장소를 등록하세요" subtitle="장소의 기구에 맞춰 루틴을 짜 드려요" onPress={() => router.push('/place/new')} />
+          </ListCard>
+        ) : !today.workoutDay && !doneToday && !active ? (
+          <ListCard>
+            <ListRow marker="1" state="current" title="가볍게 걷기" subtitle="대화가 가능한 속도 · 회복 촉진" value="30" unit="분" caption="권장" />
+            <ListRow marker="2" title="전신 스트레칭" subtitle="고관절 · 흉추 · 햄스트링" value="10" unit="분" caption="권장" />
+            <ListRow marker="arrow-forward" title={`다음 운동: ${day?.name ?? ''}`} subtitle={day?.focus} onPress={() => router.push('/workout')} />
+          </ListCard>
+        ) : (
+          <ListCard>
+            <ListRow marker="1" state={warmedUp ? 'done' : 'current'} title="워밍업 스트레칭" subtitle="관절 돌리기 · 가벼운 세트" value="5" unit="분" caption={warmedUp ? '완료' : '다음'} />
+            {rows.map((p, i) => {
+              const ex = p.exercise!;
+              const rx = p.prescription!;
+              const done = doneIds.has(ex.id);
+              const current = warmedUp && !done && i === firstPending;
+              return (
+                <ListRow
+                  key={ex.id}
+                  marker={String(i + 2)}
+                  state={done ? 'done' : current ? 'current' : 'idle'}
+                  title={ex.name}
+                  subtitle={`${PATTERN_NAMES[ex.pattern]} · ${rx.target}`}
+                  value={String(rx.sets)}
+                  unit="세트"
+                  caption={done ? '완료' : current ? '다음' : '대기'}
+                  onPress={() => router.push('/workout')}
+                />
+              );
+            })}
+          </ListCard>
+        )}
+        {place ? <T kind="small" style={{ marginTop: Spacing.sm, paddingHorizontal: 4 }}>{place.name} 기구 기준 · 운동 탭에서 장소와 종목을 바꿀 수 있어요</T> : null}
+      </View>
+
+      <View>
+        <SectionLabel>남은 일정</SectionLabel>
+        <ListCard>
+          {upcoming.length === 0 ? <ListRow marker="moon-outline" title="오늘 남은 일정이 없어요" subtitle="푹 주무세요" /> : null}
+          {upcoming.map((item, i) => (
+            <ListRow
+              key={`${item.time}-${i}`}
+              marker={KIND_ICON[item.kind]}
+              title={item.amountMl ? `${item.title} ${item.amountMl}ml` : item.title}
+              subtitle={item.detail}
+              value={item.time}
+            />
+          ))}
+        </ListCard>
+      </View>
+
+      <View>
+        <SectionLabel>바로가기</SectionLabel>
+        <ListCard>
+          <ListRow
+            marker="restaurant-outline"
+            title="오늘 식단"
+            subtitle={`${today.targets.calories.toLocaleString('ko-KR')} kcal · 단백질 ${today.targets.proteinG}g`}
+            onPress={() => router.push('/diet')}
+          />
+          <ListRow marker="chatbubble-outline" title="AI 코치에게 묻기" subtitle="자세 · 통증 · 정체기 · 대체 음식" onPress={() => router.push('/coach')} />
+        </ListCard>
+      </View>
+    </View>
+  );
+
+  const footer: ReactNode = (
+    <Row gap={Spacing.lg}>
+      {columns > 1 ? (
+        <View style={{ flex: 1 }}>
+          <T style={{ fontWeight: '600' }} numberOfLines={1}>
+            {active ? active.dayName : day ? `${day.name} · ${day.focus}` : '오늘의 운동'}
+          </T>
+          <T kind="small">{place ? `${place.name} · 약 ${planned}분` : '장소를 등록하면 루틴이 만들어져요'}</T>
+        </View>
+      ) : null}
+      <Button title={actionTitle} onPress={start} disabled={!!place && !day && !active} style={columns > 1 ? { minWidth: 220 } : { flex: 1 }} />
+    </Row>
+  );
 
   return (
-    <Screen>
-      <Title subtitle={`${greet}, ${profile.name || '회원'}님`} right={settingsButton}>
-        오늘
+    <Screen footer={footer}>
+      <Title eyebrow={dateText} right={settingsButton}>
+        {headline}
       </Title>
-
-      <Grid>
-        <Card title="오늘의 운동" icon="barbell" tone={active ? 'primary' : undefined}>
-          {active ? (
-            <View style={{ gap: Spacing.md }}>
-              <T>
-                <T style={{ fontWeight: '700' }}>{active.dayName}</T> 운동이 진행 중이에요.
-              </T>
-              <Button title="이어서 기록하기" icon="play" onPress={() => router.push('/session')} />
-            </View>
-          ) : today.workoutDay && nextDay ? (
-            <View style={{ gap: Spacing.md }}>
-              <View>
-                <T kind="big">{nextDay.name}</T>
-                <T kind="secondary">{nextDay.focus}</T>
-              </View>
-              {places.length === 0 ? (
-                <Notice tone="warn">운동할 장소를 먼저 등록하면 그 곳 기구에 맞춘 루틴을 짜 드려요.</Notice>
-              ) : (
-                <T kind="secondary">{lastPlace ? `최근 장소: ${lastPlace.name}` : ''}</T>
-              )}
-              <Row wrap>
-                {places.length === 0 ? (
-                  <Button title="장소 등록하기" icon="add" onPress={() => router.push('/place/new')} />
-                ) : (
-                  <Button title="루틴 보기 · 시작" icon="play" onPress={() => router.push('/workout')} />
-                )}
-              </Row>
-            </View>
-          ) : (
-            <View style={{ gap: Spacing.sm }}>
-              <T kind="big">휴식일</T>
-              <T kind="secondary">근육은 쉬는 동안 자라요. 가볍게 걷기(30분)나 스트레칭을 추천해요.</T>
-              {nextDay ? <T kind="small">다음 운동: {nextDay.name}</T> : null}
-              <Button title="그래도 운동하기" kind="secondary" icon="barbell-outline" onPress={() => router.push('/workout')} />
-            </View>
-          )}
-        </Card>
-
-        <Card title="물 마시기" icon="water" right={<T kind="secondary">{(today.waterTarget / 1000).toFixed(1)}L 목표</T>}>
-          <View style={{ gap: Spacing.md }}>
-            <Row>
-              <T kind="big" style={{ color: c.water }}>
-                {(today.waterDrunk / 1000).toFixed(2)}L
-              </T>
-              <T kind="secondary">{Math.round(waterPct * 100)}%</T>
-            </Row>
-            <Progress value={waterPct} color={c.water} />
-            <Row wrap gap={Spacing.sm}>
-              <Button small kind="secondary" title="+ 한 컵 250ml" onPress={() => addWater(250)} />
-              <Button small kind="secondary" title="+ 500ml" onPress={() => addWater(500)} />
-              <Button small kind="ghost" title="- 250ml" onPress={() => addWater(-250)} />
-            </Row>
-            {waterPct >= 1 ? <Notice tone="good">오늘 물 목표 달성! 👏</Notice> : null}
-          </View>
-        </Card>
-
-        <Card title="오늘 먹을 양" icon="restaurant">
-          <View style={{ gap: Spacing.sm }}>
-            <T kind="big">{today.targets.calories.toLocaleString()} kcal</T>
-            <T kind="secondary">
-              단백질 {today.targets.proteinG}g · 탄수화물 {today.targets.carbsG}g · 지방 {today.targets.fatG}g
-            </T>
-            <Button title="오늘 식단 보기" kind="secondary" icon="list" onPress={() => router.push('/diet')} />
-          </View>
-        </Card>
-
-        <Card title="AI 코치" icon="chatbubbles">
-          <View style={{ gap: Spacing.sm }}>
-            <T kind="secondary">자세, 통증, 정체기, 식단 대체 음식 등 무엇이든 물어보세요. 내 루틴과 몸 상태를 알고 답해요.</T>
-            <Button title="질문하기" kind="secondary" icon="chatbubble-ellipses-outline" onPress={() => router.push('/coach')} />
-          </View>
-        </Card>
-      </Grid>
-
-      <Card title="오늘 일정" icon="time">
-        {upcoming.length === 0 ? <T kind="secondary">오늘 남은 일정이 없어요. 푹 주무세요 🌙</T> : null}
-        {upcoming.map((item, i) => (
-          <Row key={`${item.time}-${i}`} style={{ paddingVertical: 8, alignItems: 'flex-start' }}>
-            <T style={{ width: 52, fontWeight: '700', fontVariant: ['tabular-nums'] }}>{item.time}</T>
-            <Icon name={KIND_ICON[item.kind]} color={item.kind === 'water' ? c.water : c.primary} />
-            <View style={{ flex: 1 }}>
-              <T style={{ fontWeight: '600' }}>
-                {item.title}
-                {item.amountMl ? ` ${item.amountMl}ml` : ''}
-              </T>
-              {item.detail ? <T kind="small">{item.detail}</T> : null}
-            </View>
-          </Row>
-        ))}
-      </Card>
+      {columns > 1 ? (
+        <View style={{ flexDirection: 'row', gap: Spacing.xl, alignItems: 'flex-start' }}>
+          <View style={{ flex: 7 }}>{stats}</View>
+          <View style={{ flex: 5 }}>{routine}</View>
+        </View>
+      ) : (
+        <>
+          {stats}
+          {routine}
+        </>
+      )}
     </Screen>
   );
 }
